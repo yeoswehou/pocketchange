@@ -26,8 +26,12 @@ async fn graphql_playground() -> impl IntoResponse {
 
 #[tokio::main]
 async fn main() {
-    let db_url = "postgresql://username:password@localhost/pocketchange";
-    let _db: DatabaseConnection = Database::connect(db_url).await.unwrap();
+    dotenvy::dotenv().ok();
+    let db_url = std::env::var("DATABASE_URL").expect("DATABASE_URL is not set");
+    println!("Connecting to database: {}", db_url);
+    let _db: DatabaseConnection = Database::connect(db_url)
+        .await
+        .expect("Database connection failed");
 
     let schema = Schema::build(QueryRoot, EmptyMutation, EmptySubscription).finish();
 

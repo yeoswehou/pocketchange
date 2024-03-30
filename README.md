@@ -21,7 +21,7 @@ Requirements: Please create a simple Rust web server:
 - [ ] Database (sqlx)
   - [X] User entity
   - [X] Message entity
-  - [] Create tables
+  - [X] Create tables
   - [] Query for User
   - [] Query for Message
 - [ ] GraphQL (async-graphql)
