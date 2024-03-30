@@ -8,7 +8,9 @@ use axum::{
     routing::{get, post},
     Router,
 };
+use sea_orm::{Database, DatabaseConnection};
 
+mod entity;
 mod graphql;
 
 use graphql::schema::{MySchema, QueryRoot};
@@ -24,6 +26,9 @@ async fn graphql_playground() -> impl IntoResponse {
 
 #[tokio::main]
 async fn main() {
+    let db_url = "postgresql://username:password@localhost/pocketchange";
+    let _db: DatabaseConnection = Database::connect(db_url).await.unwrap();
+
     let schema = Schema::build(QueryRoot, EmptyMutation, EmptySubscription).finish();
 
     let app = Router::new()

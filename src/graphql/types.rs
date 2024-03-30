@@ -18,7 +18,7 @@ impl User {
 
 pub struct Message {
     pub id: ID,
-    pub user: User,
+    pub user_id: ID,
     pub text: String,
     pub timestamp: i64,
 }
@@ -29,8 +29,8 @@ impl Message {
         &self.id
     }
 
-    async fn user(&self) -> &User {
-        &self.user
+    async fn user_id(&self) -> &ID {
+        &self.user_id
     }
 
     async fn text(&self) -> &str {
