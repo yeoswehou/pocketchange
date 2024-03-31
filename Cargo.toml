@@ -19,6 +19,7 @@ uuid = { version = "1.8.0", features = ["v4", "fast-rng"] }
 chrono = { version = "0.4.37", features = ["serde"] }
 sea-orm = { version = "0.12.15", features = ["sqlx-postgres", "runtime-tokio-native-tls", "with-chrono"] }
 dotenvy = "0.15.7"
+async-trait = "0.1.78"
 
 [dev-dependencies]
 # For pre-commit

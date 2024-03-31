@@ -27,12 +27,13 @@ docker-compose exec db psql -U username -d pocketchange
 ## How to test
 
 ## Checklist
-- [ ] Database (sqlx)
+- [x] Database (sqlx)
   - [X] User entity
   - [X] Message entity
   - [X] Create tables
-  - [] Query for User
-  - [] Query for Message
+  - [X] Query for User
+  - [X] Query for Message
+  - Test
 - [ ] GraphQL (async-graphql)
   - Endpoint
   - Schema
