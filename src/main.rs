@@ -8,12 +8,13 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use sea_orm::{Database, DatabaseConnection};
+use sea_orm::{ActiveModelTrait, Database, DatabaseConnection, DbErr, EntityTrait, Set};
+
+use entity::user;
+use graphql::schema::{MySchema, QueryRoot};
 
 mod entity;
 mod graphql;
-
-use graphql::schema::{MySchema, QueryRoot};
 
 async fn graphql_handler(schema: Extension<MySchema>, req: GraphQLRequest) -> GraphQLResponse {
     schema.execute(req.into_inner()).await.into()
@@ -24,14 +25,34 @@ async fn graphql_playground() -> impl IntoResponse {
     Html(html)
 }
 
+async fn create_user(db: DatabaseConnection, name: &str) -> Result<user::Model, DbErr> {
+    let user = user::ActiveModel {
+        name: Set(name.to_owned()),
+        ..Default::default()
+    };
+
+    let res = user.insert(&db).await?;
+    Ok(res)
+}
+
+async fn print_users(db: DatabaseConnection) {
+    let users = user::Entity::find().all(&db).await.unwrap();
+    println!("Users: {:?}", users);
+}
+
 #[tokio::main]
 async fn main() {
     dotenvy::dotenv().ok();
     let db_url = std::env::var("DATABASE_URL").expect("DATABASE_URL is not set");
     println!("Connecting to database: {}", db_url);
-    let _db: DatabaseConnection = Database::connect(db_url)
+    let db: DatabaseConnection = Database::connect(db_url)
         .await
         .expect("Database connection failed");
+    let new_user = create_user(db.clone(), "King")
+        .await
+        .expect("Failed to create user");
+    println!("Created new user: {:?}", new_user);
+    print_users(db).await;
 
     let schema = Schema::build(QueryRoot, EmptyMutation, EmptySubscription).finish();
 

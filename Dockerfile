@@ -6,6 +6,10 @@ COPY . .
 RUN apt-get update && apt-get install -y libpq-dev
 RUN cargo build --release
 
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+
+ENTRYPOINT ["entrypoint.sh"]
+
 FROM debian:buster-slim
 
 RUN apt-get update && apt-get install -y libpq5
