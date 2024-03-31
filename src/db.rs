@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter, Set,
 };
@@ -6,42 +7,38 @@ use sea_orm::{
 use crate::entity::{message, user};
 
 enum UserAction {
-    CreateUser(String),
-    DeleteUser(i32),
-    UpdateUser(i32, String),
-    PrintUsers,
+    Create(String),
+    Delete(i32),
+    Update(i32, String),
+    Get(i32),
 }
 
 enum MessageAction {
-    CreateMessage(i32, String),
-    UpdateMessage(i32, String),
-    DeleteMessage(i32),
-    TimeRangeMessages(i32, i32),
-    PrintMessages(i32),
+    Created(i32, String),
+    Update(i32, String),
+    Delete(i32),
+    TimeRange(i32, i32),
+    Print(i32),
 }
 
 async fn handle_action(db: &DatabaseConnection, action: UserAction) -> Result<(), DbErr> {
     match action {
-        UserAction::CreateUser(name) => {
+        UserAction::Create(name) => {
             create_user(db, &name).await?;
             println!("User created: {}", name);
         }
-        UserAction::DeleteUser(user_id) => {
+        UserAction::Delete(user_id) => {
             delete_user(db, user_id).await?;
             println!("User deleted: ID {}", user_id);
         }
-        UserAction::PrintUsers => {
-            let users = get_users(db).await?;
-            for user in users {
-                println!("User: {}", user.name);
-            }
+        UserAction::Get(user_id) => {
+            get_user(db, user_id).await?;
         }
-        UserAction::UpdateUser(user_id, name) => {
+        UserAction::Update(user_id, name) => {
             update_user(db, user_id, &name).await?;
             println!("User updated: ID {}, Name: {}", user_id, name);
         }
     }
-
     Ok(())
 }
 
@@ -68,9 +65,9 @@ async fn delete_user(db: &DatabaseConnection, user_id: i32) -> Result<(), DbErr>
     Ok(())
 }
 
-async fn get_users(db: &DatabaseConnection) -> Result<Vec<user::Model>, DbErr> {
-    let users = user::Entity::find().all(db).await?;
-    Ok(users)
+async fn get_user(db: &DatabaseConnection, user_id: i32) -> Result<Option<user::Model>, DbErr> {
+    let user = user::Entity::find_by_id(user_id).one(db).await?;
+    Ok(user)
 }
 
 async fn create_message(db: DatabaseConnection, user_id: i32, content: &str) -> Result<(), DbErr> {
@@ -109,19 +106,103 @@ mod tests {
     async fn setup() -> DatabaseConnection {
         dotenv().ok();
         let db_url = env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL must be set");
-        Database::connect(&db_url)
+        let db = Database::connect(&db_url)
             .await
-            .expect("Failed to connect to test database")
+            .expect("Failed to connect to test database");
+        user::Entity::delete_many()
+            .filter(user::Column::Id.gt(0))
+            .exec(&db)
+            .await
+            .unwrap();
+        db
     }
 
     #[tokio::test]
     async fn test_create_user() {
         let db = setup().await;
         let name = "Alice";
-        create_user(&db, name).await.unwrap();
-        let users = get_users(&db).await.unwrap();
-        assert_eq!(users.len(), 1);
-        assert_eq!(users[0].name, name);
-        delete_user(&db, users[0].id).await.unwrap();
+        let new_user_result = create_user(&db, name).await;
+        assert!(new_user_result.is_ok(), "Failed to create user");
+
+        let user = user::Entity::find()
+            .filter(user::Column::Name.eq(name))
+            .one(&db)
+            .await
+            .expect("Failed to find user");
+        assert!(user.is_some(), "User not found");
+        assert_eq!(user.unwrap().name, name);
+    }
+
+    #[tokio::test]
+    async fn test_update_user() {
+        let db = setup().await;
+        let name = "Bob";
+        let new_name = "Carl";
+        create_user(&db, name).await.expect("Failed to create user");
+
+        let user = user::Entity::find()
+            .filter(user::Column::Name.eq(name))
+            .one(&db)
+            .await
+            .expect("Failed to find user")
+            .expect("User not found");
+
+        let user_id = user.id;
+        update_user(&db, user_id, new_name)
+            .await
+            .expect("Failed to update user");
+
+        let updated_user = user::Entity::find_by_id(user_id)
+            .one(&db)
+            .await
+            .expect("Failed to find user")
+            .expect("User not found");
+
+        assert_eq!(updated_user.name, new_name);
+    }
+
+    #[tokio::test]
+    async fn test_delete_user() {
+        let db = setup().await;
+        let name = "Dave";
+        create_user(&db, name).await.expect("Failed to create user");
+
+        let user = user::Entity::find()
+            .filter(user::Column::Name.eq(name))
+            .one(&db)
+            .await
+            .expect("Failed to find user")
+            .expect("User not found");
+
+        let user_id = user.id;
+        delete_user(&db, user_id)
+            .await
+            .expect("Failed to delete user");
+
+        let deleted_user = user::Entity::find_by_id(user_id)
+            .one(&db)
+            .await
+            .expect("Failed to find user");
+
+        assert!(deleted_user.is_none(), "User not deleted");
+    }
+
+    #[tokio::test]
+    async fn test_get_user() {
+        let db = setup().await;
+        let name = "Igor";
+        create_user(&db, name).await.expect("Failed to create user");
+
+        let user = user::Entity::find()
+            .filter(user::Column::Name.eq(name))
+            .one(&db)
+            .await
+            .expect("Failed to find user")
+            .expect("User not found");
+
+        let user_id = user.id;
+        let found_user = get_user(&db, user_id).await.expect("Failed to get user");
+        assert!(found_user.is_some(), "User not found");
+        assert_eq!(found_user.unwrap().name, name);
     }
 }
