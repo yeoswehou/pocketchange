@@ -50,33 +50,48 @@ pub struct MutationResponse {
     pub message: String,
 }
 
-async fn handle_database_action(result: DatabaseAction) -> FieldResult<bool> {
+async fn handle_database_action(result: DatabaseAction) -> FieldResult<MutationResponse> {
     match result {
-        DatabaseAction::Success => Ok(true),
+        DatabaseAction::Success => Ok(MutationResponse {
+            success: true,
+            message: "Action succeeded".to_string(),
+        }),
         DatabaseAction::Failure(message) => Err(FieldError::new(message)),
-        DatabaseAction::User(_) => Ok(true),
+        DatabaseAction::User(_) => Ok(MutationResponse {
+            success: true,
+            message: "User action succeeded".to_string(),
+        }),
     }
 }
 
 #[Object]
 impl MutationRoot {
-    pub async fn create_user(&self, _ctx: &Context<'_>, name: String) -> FieldResult<bool> {
-        let db = _ctx.data::<MyContext>().unwrap().db.clone();
-        let success = handle_user_action(&db, UserAction::Create(name)).await?;
-        handle_database_action(success).await
+    pub async fn create_user(
+        &self,
+        ctx: &Context<'_>,
+        name: String,
+    ) -> FieldResult<MutationResponse> {
+        let db = ctx.data_unchecked::<MyContext>().db.clone();
+        let result = handle_user_action(&db, UserAction::Create(name)).await?;
+        handle_database_action(result).await
     }
 
-    pub async fn update_user(&self, _ctx: &Context<'_>, id: ID, name: String) -> FieldResult<bool> {
-        let db = _ctx.data::<MyContext>().unwrap().db.clone();
-        let user_id = id.parse::<i32>().unwrap();
-        let success = handle_user_action(&db, UserAction::Update(user_id, name)).await?;
-        handle_database_action(success).await
+    pub async fn update_user(
+        &self,
+        ctx: &Context<'_>,
+        id: ID,
+        name: String,
+    ) -> FieldResult<MutationResponse> {
+        let db = ctx.data_unchecked::<MyContext>().db.clone();
+        let user_id = id.parse::<i32>()?; // Use '?' for proper error handling
+        let result = handle_user_action(&db, UserAction::Update(user_id, name)).await?;
+        handle_database_action(result).await
     }
 
-    pub async fn delete_user(&self, _ctx: &Context<'_>, id: ID) -> FieldResult<bool> {
-        let db = _ctx.data::<MyContext>().unwrap().db.clone();
-        let user_id = id.parse::<i32>().unwrap();
-        let success = handle_user_action(&db, UserAction::Delete(user_id)).await?;
-        handle_database_action(success).await
+    pub async fn delete_user(&self, ctx: &Context<'_>, id: ID) -> FieldResult<MutationResponse> {
+        let db = ctx.data_unchecked::<MyContext>().db.clone();
+        let user_id = id.parse::<i32>()?; // Use '?' for proper error handling
+        let result = handle_user_action(&db, UserAction::Delete(user_id)).await?;
+        handle_database_action(result).await
     }
 }
