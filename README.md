@@ -11,6 +11,16 @@ Requirements: Please create a simple Rust web server:
 * (advanced. optional) Each message can be replied to. and it can be nested (reply -> reply -> reply ... should support)
 * (advanced. optional) Each user can be registered/login by ID/password. Only the author can modify/delete the comments (the user should be identified by something. Authorization header or so on?)
 
+## How to run
+```
+docker-compose up app
+```
+
+## How to test
+```
+docker-compose up -d test-db
+cargo test
+```
 
 # Access GraphQL Playground
 It dynamically scans for an available port. The port is printed to the console.
@@ -133,6 +143,99 @@ Success
 }
 ```
 
+## Message Mutations
+- **createMessage**
+```graphql
+mutation {
+  createMessage(userId: 9, content: "I am Batman") {
+  success
+  }
+}
+```
+
+**Sample Response**
+
+Success
+```json
+{
+  "data": {
+    "createMessage": {
+      "success": true
+    }
+  }
+}
+```
+
+- **updateMessage**
+```graphql
+mutation {
+  updateMessage(id: 21, content: "I am not Batman") {
+  success
+  }
+}
+```
+
+**Sample Response**
+
+Success
+```json
+{
+  "data": {
+    "updateMessage": {
+      "success": true
+    }
+  }
+}
+```
+
+- **deleteMessage**
+```graphql
+```
+
+**Sample Response**
+
+Success
+
+- getMessagesByUser
+```graphql
+query {
+  getAllMessagesForUser(userId:9) {
+    id
+    userId
+    createdAt
+    updatedAt
+    content
+  }
+}
+```
+
+**Sample Response**
+
+Success
+```json
+{
+  "data": {
+    "getAllMessagesForUser": [
+      {
+        "id": "21",
+        "userId": "9",
+        "createdAt": "2024-03-31T17:46:33.139078+00:00",
+        "updatedAt": "2024-03-31T17:46:33.139078+00:00",
+        "content": "I am Batman"
+      }
+    ]
+  }
+}
+```
+
+- getMessagesByTimeRange
+```graphql
+```
+
+**Sample Response**
+
+Success
+
 ## Environment Variables
 Stored in a .env file because this is an assignment. It will be handled differently in production (GitHub Secrets etc.).
 
@@ -153,10 +256,7 @@ Run the following command to remove the database
 ```
  docker-compose down -v
 ```
-## How to run
 
-
-## How to test
 
 ## Checklist
 - [x] Database (sqlx)

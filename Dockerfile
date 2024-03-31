@@ -3,7 +3,7 @@ FROM rust:latest as builder
 WORKDIR /app
 COPY . .
 
-RUN apt-get update && apt-get install -y libpq-dev
+RUN apt-get update && apt-get install -y libpq-dev libssl-dev
 RUN cargo build --release
 
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh

@@ -16,9 +16,10 @@ pub enum UserAction {
 pub enum MessageAction {
     Create(i32, String),
     Get(i32),
+    GetAllForUser(i32),
+    GetInTimeRangeForUser(i32, DateTime<Utc>, DateTime<Utc>),
     Update(i32, String),
     Delete(i32),
-    TimeRange(i32, DateTime<Utc>, DateTime<Utc>),
     Print(i32),
 }
 
@@ -150,7 +151,11 @@ pub async fn handle_message_action(
             println!("Message deleted: ID {}", message_id);
             Ok(DatabaseAction::Success)
         }
-        MessageAction::TimeRange(user_id, start, end) => {
+        MessageAction::GetAllForUser(user_id) => {
+            let messages = get_all_messages_for_user(db, user_id).await?;
+            Ok(DatabaseAction::Messages(messages))
+        }
+        MessageAction::GetInTimeRangeForUser(user_id, start, end) => {
             get_messages_in_time_range(db, user_id, start, end).await?;
             Ok(DatabaseAction::Success)
         }
@@ -211,6 +216,18 @@ async fn delete_message(db: &DatabaseConnection, message_id: i32) -> Result<Data
     }
 }
 
+async fn get_all_messages_for_user(
+    db: &DatabaseConnection,
+    user_id: i32,
+) -> Result<Vec<message::Model>, DbErr> {
+    let messages = message::Entity::find()
+        .filter(message::Column::UserId.eq(user_id))
+        .all(db)
+        .await?;
+
+    Ok(messages)
+}
+
 async fn get_messages_in_time_range(
     db: &DatabaseConnection,
     user_id: i32,
@@ -223,7 +240,6 @@ async fn get_messages_in_time_range(
         .all(db)
         .await?;
 
-    println!("Messages in time range: {:?}", messages);
     Ok(DatabaseAction::Messages(messages))
 }
 
