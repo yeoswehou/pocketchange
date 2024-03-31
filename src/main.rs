@@ -39,9 +39,7 @@ async fn main() {
     let schema = Schema::build(QueryRoot, MutationRoot, EmptySubscription)
         .data(MyContext::new(db))
         .finish();
-    // let schema = Schema::build(QueryRoot, EmptyMutation, EmptySubscription)
-    //     .data(MyContext::new(db))
-    //     .finish();
+
     let app = Router::new()
         .route("/graphql", post(graphql_handler).get(graphql_handler))
         .route("/graphiql", get(graphql_playground))

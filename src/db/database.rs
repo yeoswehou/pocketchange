@@ -14,7 +14,8 @@ pub enum UserAction {
 }
 
 pub enum MessageAction {
-    Created(i32, String),
+    Create(i32, String),
+    Get(i32),
     Update(i32, String),
     Delete(i32),
     TimeRange(i32, DateTime<Utc>, DateTime<Utc>),
@@ -25,6 +26,8 @@ pub enum DatabaseAction {
     Success,
     Failure(String),
     User(user::Model),
+    Message(message::Model),
+    Messages(Vec<message::Model>),
 }
 
 pub async fn handle_user_action(
@@ -114,33 +117,55 @@ async fn print_users(db: DatabaseConnection) {
 pub async fn handle_message_action(
     db: &DatabaseConnection,
     action: MessageAction,
-) -> Result<(), DbErr> {
+) -> Result<DatabaseAction, DbErr> {
     match action {
-        MessageAction::Created(user_id, content) => {
+        MessageAction::Create(user_id, content) => {
             create_message(db, user_id, &content).await?;
             println!("Message created: User ID {}, Content: {}", user_id, content);
+            Ok(DatabaseAction::Success)
+        }
+        MessageAction::Get(message_id) => {
+            let message = get_message(db, message_id).await?;
+            match message {
+                Some(message) => {
+                    println!(
+                        "Message found: ID {}, User ID {}, Content: {}",
+                        message.id, message.user_id, message.content
+                    );
+                    Ok(DatabaseAction::Message(message))
+                }
+                None => {
+                    println!("Message not found: ID {}", message_id);
+                    Ok(DatabaseAction::Failure("Message not found".to_string()))
+                }
+            }
         }
         MessageAction::Update(message_id, content) => {
             update_message(db, message_id, &content).await?;
             println!("Message updated: ID {}, Content: {}", message_id, content);
+            Ok(DatabaseAction::Success)
         }
         MessageAction::Delete(message_id) => {
             delete_message(db, message_id).await?;
             println!("Message deleted: ID {}", message_id);
+            Ok(DatabaseAction::Success)
         }
         MessageAction::TimeRange(user_id, start, end) => {
-            get_messages_in_time_range(db, user_id, start, end)
-                .await
-                .expect("No messages found in time range");
+            get_messages_in_time_range(db, user_id, start, end).await?;
+            Ok(DatabaseAction::Success)
         }
         MessageAction::Print(user_id) => {
             print_messages(db, user_id).await;
+            Ok(DatabaseAction::Success)
         }
     }
-    Ok(())
 }
 
-async fn create_message(db: &DatabaseConnection, user_id: i32, content: &str) -> Result<(), DbErr> {
+async fn create_message(
+    db: &DatabaseConnection,
+    user_id: i32,
+    content: &str,
+) -> Result<DatabaseAction, DbErr> {
     let message = message::ActiveModel {
         user_id: Set(user_id),
         content: Set(content.to_owned()),
@@ -148,24 +173,42 @@ async fn create_message(db: &DatabaseConnection, user_id: i32, content: &str) ->
     };
 
     message.insert(db).await?;
-    Ok(())
+    Ok(DatabaseAction::Success)
+}
+
+async fn get_message(
+    db: &DatabaseConnection,
+    message_id: i32,
+) -> Result<Option<message::Model>, DbErr> {
+    let message = message::Entity::find_by_id(message_id).one(db).await?;
+    Ok(message)
 }
 
 async fn update_message(
     db: &DatabaseConnection,
     message_id: i32,
     new_content: &str,
-) -> Result<(), DbErr> {
+) -> Result<DatabaseAction, DbErr> {
     let filtered_message = message::Entity::find_by_id(message_id).one(db).await?;
-    let mut mut_filtered_message: message::ActiveModel = filtered_message.unwrap().into();
-    mut_filtered_message.content = Set(new_content.to_owned());
-    mut_filtered_message.update(db).await?;
-    Ok(())
+    if let Some(filtered_message) = filtered_message {
+        let mut mut_filtered_message: message::ActiveModel = filtered_message.into();
+        mut_filtered_message.content = Set(new_content.to_owned());
+        mut_filtered_message.update(db).await?;
+        Ok(DatabaseAction::Success)
+    } else {
+        println!("Message not found: ID {}", message_id);
+        Ok(DatabaseAction::Failure("Message not found".to_string()))
+    }
 }
 
-async fn delete_message(db: &DatabaseConnection, message_id: i32) -> Result<(), DbErr> {
-    message::Entity::delete_by_id(message_id).exec(db).await?;
-    Ok(())
+async fn delete_message(db: &DatabaseConnection, message_id: i32) -> Result<DatabaseAction, DbErr> {
+    let result = message::Entity::delete_by_id(message_id).exec(db).await?;
+    if result.rows_affected > 0 {
+        Ok(DatabaseAction::Success)
+    } else {
+        println!("Message not found: ID {}", message_id);
+        Ok(DatabaseAction::Failure("Message not found".to_string()))
+    }
 }
 
 async fn get_messages_in_time_range(
@@ -173,7 +216,7 @@ async fn get_messages_in_time_range(
     user_id: i32,
     start: DateTime<Utc>,
     end: DateTime<Utc>,
-) -> Result<Vec<message::Model>, DbErr> {
+) -> Result<DatabaseAction, DbErr> {
     let messages = message::Entity::find()
         .filter(message::Column::UserId.eq(user_id))
         .filter(message::Column::CreatedAt.between(start, end))
@@ -181,7 +224,7 @@ async fn get_messages_in_time_range(
         .await?;
 
     println!("Messages in time range: {:?}", messages);
-    Ok(messages)
+    Ok(DatabaseAction::Messages(messages))
 }
 
 async fn print_messages(db: &DatabaseConnection, user_id: i32) {
@@ -447,6 +490,11 @@ mod tests {
         let end = chrono::Utc::now();
         let messages = get_messages_in_time_range(&db, user_id, start, end).await;
         let result = messages.expect("Failed to get messages in time range");
-        assert_eq!(result.len(), 10);
+        match result {
+            DatabaseAction::Messages(messages) => {
+                assert_eq!(messages.len(), 10);
+            }
+            _ => panic!("Expected DatabaseAction::Messages"),
+        }
     }
 }

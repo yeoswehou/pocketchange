@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 #![allow(unused_imports)]
+
 use crate::db::database::{
     handle_message_action, handle_user_action, DatabaseAction, MessageAction, UserAction,
 };
@@ -61,6 +62,14 @@ async fn handle_database_action(result: DatabaseAction) -> FieldResult<MutationR
             success: true,
             message: "User action succeeded".to_string(),
         }),
+        DatabaseAction::Message(_) => Ok(MutationResponse {
+            success: true,
+            message: "Message action succeeded".to_string(),
+        }),
+        DatabaseAction::Messages(_) => Ok(MutationResponse {
+            success: true,
+            message: "Messages action succeeded".to_string(),
+        }),
     }
 }
 
@@ -92,6 +101,38 @@ impl MutationRoot {
         let db = ctx.data_unchecked::<MyContext>().db.clone();
         let user_id = id.parse::<i32>()?; // Use '?' for proper error handling
         let result = handle_user_action(&db, UserAction::Delete(user_id)).await?;
+        handle_database_action(result).await
+    }
+
+    pub async fn create_message(
+        &self,
+        ctx: &Context<'_>,
+        user_id: ID,
+        content: String,
+        // parent_id: Option<i32>,
+    ) -> FieldResult<MutationResponse> {
+        let db = ctx.data_unchecked::<MyContext>().db.clone();
+        let user_id = user_id.parse::<i32>()?;
+        let result = handle_message_action(&db, MessageAction::Create(user_id, content)).await?;
+        handle_database_action(result).await
+    }
+
+    pub async fn delete_message(&self, ctx: &Context<'_>, id: ID) -> FieldResult<MutationResponse> {
+        let db = ctx.data_unchecked::<MyContext>().db.clone();
+        let message_id = id.parse::<i32>()?;
+        let result = handle_message_action(&db, MessageAction::Delete(message_id)).await?;
+        handle_database_action(result).await
+    }
+
+    pub async fn update_message(
+        &self,
+        ctx: &Context<'_>,
+        id: ID,
+        content: String,
+    ) -> FieldResult<MutationResponse> {
+        let db = ctx.data_unchecked::<MyContext>().db.clone();
+        let message_id = id.parse::<i32>()?;
+        let result = handle_message_action(&db, MessageAction::Update(message_id, content)).await?;
         handle_database_action(result).await
     }
 }
