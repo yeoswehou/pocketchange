@@ -40,7 +40,8 @@ impl MigrationTrait for Migration {
                     .col(
                         ColumnDef::new(User::Name)
                             .string()
-                            .not_null(),
+                            .not_null()
+                            .unique_key(),
                     )
                     .to_owned(),
             )

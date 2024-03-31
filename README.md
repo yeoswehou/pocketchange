@@ -11,6 +11,9 @@ Requirements: Please create a simple Rust web server:
 * (advanced. optional) Each message can be replied to. and it can be nested (reply -> reply -> reply ... should support)
 * (advanced. optional) Each user can be registered/login by ID/password. Only the author can modify/delete the comments (the user should be identified by something. Authorization header or so on?)
 
+## Environment Variables
+Stored in a .env file because this is an assignment. It will be handled differently in production (GitHub Secrets etc.).
+
 ## Docker Commands for setup 
 Run the following command to start the database for use
 ```
