@@ -46,7 +46,7 @@ Run the following command to remove the database
   - Schema
   - Query
   - Mutation
-- [ ] CRUD for Message
-- [ ] Query for Message by user and time range
+- [X] CRUD for Message
+- [X] Query for Message by user and time range
 - [ ] Advanced: Reply to Message
 - [ ] Advanced: User registration/login

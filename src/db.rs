@@ -1,10 +1,10 @@
 #![allow(dead_code)]
 
+use crate::entity::{message, user};
+use chrono::{DateTime, Utc};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter, Set,
 };
-
-use crate::entity::{message, user};
 
 enum UserAction {
     Create(String),
@@ -17,11 +17,11 @@ enum MessageAction {
     Created(i32, String),
     Update(i32, String),
     Delete(i32),
-    TimeRange(i32, i32),
+    TimeRange(i32, DateTime<Utc>, DateTime<Utc>),
     Print(i32),
 }
 
-async fn handle_action(db: &DatabaseConnection, action: UserAction) -> Result<(), DbErr> {
+async fn handle_user_action(db: &DatabaseConnection, action: UserAction) -> Result<(), DbErr> {
     match action {
         UserAction::Create(name) => {
             create_user(db, &name).await?;
@@ -70,27 +70,89 @@ async fn get_user(db: &DatabaseConnection, user_id: i32) -> Result<Option<user::
     Ok(user)
 }
 
-async fn create_message(db: DatabaseConnection, user_id: i32, content: &str) -> Result<(), DbErr> {
-    let message = message::ActiveModel {
-        user_id: Set(user_id),
-        content: Set(content.to_owned()),
-        ..Default::default()
-    };
-
-    message.insert(&db).await?;
-    Ok(())
-}
-
 // Print functions for users and messages for easier testing
 async fn print_users(db: DatabaseConnection) {
     let users = user::Entity::find().all(&db).await.unwrap();
     println!("Users: {:?}", users);
 }
 
-async fn print_messages(db: DatabaseConnection, user_id: i32) {
+async fn handle_message_action(
+    db: &DatabaseConnection,
+    action: MessageAction,
+) -> Result<(), DbErr> {
+    match action {
+        MessageAction::Created(user_id, content) => {
+            create_message(db, user_id, &content).await?;
+            println!("Message created: User ID {}, Content: {}", user_id, content);
+        }
+        MessageAction::Update(message_id, content) => {
+            update_message(db, message_id, &content).await?;
+            println!("Message updated: ID {}, Content: {}", message_id, content);
+        }
+        MessageAction::Delete(message_id) => {
+            delete_message(db, message_id).await?;
+            println!("Message deleted: ID {}", message_id);
+        }
+        MessageAction::TimeRange(user_id, start, end) => {
+            get_messages_in_time_range(db, user_id, start, end)
+                .await
+                .expect("No messages found in time range");
+        }
+        MessageAction::Print(user_id) => {
+            print_messages(db, user_id).await;
+        }
+    }
+    Ok(())
+}
+
+async fn create_message(db: &DatabaseConnection, user_id: i32, content: &str) -> Result<(), DbErr> {
+    let message = message::ActiveModel {
+        user_id: Set(user_id),
+        content: Set(content.to_owned()),
+        ..Default::default()
+    };
+
+    message.insert(db).await?;
+    Ok(())
+}
+
+async fn update_message(
+    db: &DatabaseConnection,
+    message_id: i32,
+    new_content: &str,
+) -> Result<(), DbErr> {
+    let filtered_message = message::Entity::find_by_id(message_id).one(db).await?;
+    let mut mut_filtered_message: message::ActiveModel = filtered_message.unwrap().into();
+    mut_filtered_message.content = Set(new_content.to_owned());
+    mut_filtered_message.update(db).await?;
+    Ok(())
+}
+
+async fn delete_message(db: &DatabaseConnection, message_id: i32) -> Result<(), DbErr> {
+    message::Entity::delete_by_id(message_id).exec(db).await?;
+    Ok(())
+}
+
+async fn get_messages_in_time_range(
+    db: &DatabaseConnection,
+    user_id: i32,
+    start: DateTime<Utc>,
+    end: DateTime<Utc>,
+) -> Result<Vec<message::Model>, DbErr> {
     let messages = message::Entity::find()
         .filter(message::Column::UserId.eq(user_id))
-        .all(&db)
+        .filter(message::Column::CreatedAt.between(start, end))
+        .all(db)
+        .await?;
+
+    println!("Messages in time range: {:?}", messages);
+    Ok(messages)
+}
+
+async fn print_messages(db: &DatabaseConnection, user_id: i32) {
+    let messages = message::Entity::find()
+        .filter(message::Column::UserId.eq(user_id))
+        .all(db)
         .await
         .unwrap();
     println!("Messages: {:?}", messages);
@@ -102,6 +164,7 @@ mod tests {
     use dotenvy::dotenv;
     use sea_orm::Database;
     use std::env;
+    use tokio::time;
 
     async fn setup() -> DatabaseConnection {
         dotenv().ok();
@@ -204,5 +267,151 @@ mod tests {
         let found_user = get_user(&db, user_id).await.expect("Failed to get user");
         assert!(found_user.is_some(), "User not found");
         assert_eq!(found_user.unwrap().name, name);
+    }
+
+    #[tokio::test]
+    async fn test_create_message() {
+        let db = setup().await;
+        let user_name = "Alex";
+        let message_content = "Hello, world!";
+        create_user(&db, user_name)
+            .await
+            .expect("Failed to create user");
+
+        let user = user::Entity::find()
+            .filter(user::Column::Name.eq(user_name))
+            .one(&db)
+            .await
+            .expect("Failed to find user")
+            .expect("User not found");
+
+        let user_id = user.id;
+        create_message(&db, user_id, message_content)
+            .await
+            .expect("Failed to create message");
+
+        let message = message::Entity::find()
+            .filter(message::Column::UserId.eq(user_id))
+            .one(&db)
+            .await
+            .expect("Failed to find message")
+            .expect("Message not found");
+
+        assert_eq!(message.content, message_content);
+    }
+
+    #[tokio::test]
+    async fn test_update_message() {
+        let db = setup().await;
+        let user_name = "Bob Dylan";
+        let message_content = "Hello, world!";
+        create_user(&db, user_name)
+            .await
+            .expect("Failed to create user");
+
+        let user = user::Entity::find()
+            .filter(user::Column::Name.eq(user_name))
+            .one(&db)
+            .await
+            .expect("Failed to find user")
+            .expect("User not found");
+
+        let user_id = user.id;
+        create_message(&db, user_id, message_content)
+            .await
+            .expect("Failed to create message");
+
+        let message = message::Entity::find()
+            .filter(message::Column::UserId.eq(user_id))
+            .one(&db)
+            .await
+            .expect("Failed to find message")
+            .expect("Message not found");
+
+        let message_id = message.id;
+        let new_content = "Goodbye, world!";
+        update_message(&db, message_id, new_content)
+            .await
+            .expect("Failed to update message");
+
+        let updated_message = message::Entity::find_by_id(message_id)
+            .one(&db)
+            .await
+            .expect("Failed to find message")
+            .expect("Message not found");
+
+        assert_eq!(updated_message.content, new_content);
+    }
+
+    #[tokio::test]
+    async fn test_delete_message() {
+        let db = setup().await;
+        let user_name = "Charlie";
+        let message_content = "Hello, world!";
+        create_user(&db, user_name)
+            .await
+            .expect("Failed to create user");
+
+        let user = user::Entity::find()
+            .filter(user::Column::Name.eq(user_name))
+            .one(&db)
+            .await
+            .expect("Failed to find user")
+            .expect("User not found");
+
+        let user_id = user.id;
+        create_message(&db, user_id, message_content)
+            .await
+            .expect("Failed to create message");
+
+        let message = message::Entity::find()
+            .filter(message::Column::UserId.eq(user_id))
+            .one(&db)
+            .await
+            .expect("Failed to find message")
+            .expect("Message not found");
+
+        let message_id = message.id;
+        delete_message(&db, message_id)
+            .await
+            .expect("Failed to delete message");
+
+        let deleted_message = message::Entity::find_by_id(message_id)
+            .one(&db)
+            .await
+            .expect("Failed to find message");
+
+        assert!(deleted_message.is_none(), "Message not deleted");
+    }
+
+    #[tokio::test]
+    async fn test_get_messages_in_time_range() {
+        let db = setup().await;
+        let user_name = "David";
+        let message_content = "Hello, world!";
+        create_user(&db, user_name)
+            .await
+            .expect("Failed to create user");
+
+        let user = user::Entity::find()
+            .filter(user::Column::Name.eq(user_name))
+            .one(&db)
+            .await
+            .expect("Failed to find user")
+            .expect("User not found");
+
+        let user_id = user.id;
+        for _ in 0..10 {
+            create_message(&db, user_id, message_content)
+                .await
+                .expect("Failed to create message");
+        }
+        time::sleep(time::Duration::from_secs(1)).await;
+
+        let start = chrono::Utc::now() - chrono::Duration::days(1);
+        let end = chrono::Utc::now();
+        let messages = get_messages_in_time_range(&db, user_id, start, end).await;
+        let result = messages.expect("Failed to get messages in time range");
+        assert_eq!(result.len(), 10);
     }
 }

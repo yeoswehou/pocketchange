@@ -56,6 +56,12 @@ jobs:
 
       - name: Build
         run: cargo build --verbose
+        
+      - name: Install sea-orm-cli
+        run: cargo install sea-orm-cli
+        
+      - name: Run migrations
+        run: sea-orm-cli migrate up -u postgresql://username:password@localhost:5433/pocketchangetest
 
       - name: Run tests
         run: cargo test --verbose
