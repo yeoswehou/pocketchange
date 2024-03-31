@@ -10,6 +10,17 @@ services:
       POSTGRES_DB: pocketchange
     volumes:
       - postgres-data:/var/lib/postgresql/data
+
+  test-db:
+    image: postgres
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: username
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: pocketchangetest
+    volumes:
+      - test-postgres-data:/var/lib/postgresql/data
   app:
     build: .
     environment:
@@ -22,3 +33,4 @@ services:
 
 volumes:
   postgres-data:
+  test-postgres-data:

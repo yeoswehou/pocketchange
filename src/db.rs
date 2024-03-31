@@ -98,3 +98,30 @@ async fn print_messages(db: DatabaseConnection, user_id: i32) {
         .unwrap();
     println!("Messages: {:?}", messages);
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use dotenvy::dotenv;
+    use sea_orm::Database;
+    use std::env;
+
+    async fn setup() -> DatabaseConnection {
+        dotenv().ok();
+        let db_url = env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL must be set");
+        Database::connect(&db_url)
+            .await
+            .expect("Failed to connect to test database")
+    }
+
+    #[tokio::test]
+    async fn test_create_user() {
+        let db = setup().await;
+        let name = "Alice";
+        create_user(&db, name).await.unwrap();
+        let users = get_users(&db).await.unwrap();
+        assert_eq!(users.len(), 1);
+        assert_eq!(users[0].name, name);
+        delete_user(&db, users[0].id).await.unwrap();
+    }
+}

@@ -11,13 +11,20 @@ Requirements: Please create a simple Rust web server:
 * (advanced. optional) Each message can be replied to. and it can be nested (reply -> reply -> reply ... should support)
 * (advanced. optional) Each user can be registered/login by ID/password. Only the author can modify/delete the comments (the user should be identified by something. Authorization header or so on?)
 
-## Run Datbaase for dev
+## Docker Commands for setup 
+Run the following command to start the database for use
 ```
 docker-compose up -d db
 ```
+Run the following command to connect to the database for testing
+```
+docker-compose up -d test-db
+```
+Run the following command to connect to the database for testing
 ```
 docker-compose exec db psql -U username -d pocketchange
 ```
+Run the following command to remove the database
 ```
  docker-compose down -v
 ```
