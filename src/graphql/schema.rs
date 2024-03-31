@@ -1,61 +1,82 @@
+#![allow(dead_code)]
+#![allow(unused_imports)]
+use crate::db::database::{
+    handle_message_action, handle_user_action, DatabaseAction, MessageAction, UserAction,
+};
 use crate::graphql::types::{Message, User};
-use async_graphql::{Context, FieldResult, Object, Schema, ID};
+use async_graphql::{Context, FieldError, FieldResult, Object, Schema, SimpleObject, ID};
 use chrono::prelude::*;
-use uuid::Uuid;
+use sea_orm::DatabaseConnection;
+use tracing_subscriber::registry::Data;
+
+pub struct MyContext {
+    db: DatabaseConnection,
+}
+
+impl MyContext {
+    pub fn new(db: DatabaseConnection) -> Self {
+        Self { db }
+    }
+}
 
 pub struct QueryRoot;
 
 #[Object]
 impl QueryRoot {
-    pub async fn user(&self, _ctx: &Context<'_>) -> Option<User> {
-        Some(User {
-            id: ID("1".to_string()),
-            name: "John Doe".to_string(),
-        })
-    }
+    pub async fn get_user(&self, ctx: &Context<'_>, id: ID) -> FieldResult<User> {
+        let db = ctx.data_unchecked::<MyContext>().db.clone();
+        let user_id = id.parse::<i32>()?;
+        let action_result = handle_user_action(&db, UserAction::Get(user_id)).await?;
 
-    pub async fn message(&self, _ctx: &Context<'_>) -> Option<Message> {
-        Some(Message {
-            id: ID("1".to_string()),
-            user_id: ID("1".to_string()),
-            text: "Hello, world!".to_string(),
-            timestamp: 1234567890,
-        })
+        match action_result {
+            DatabaseAction::User(user) => Ok(User {
+                id: ID(user.id.to_string()),
+                name: user.name,
+            }),
+            DatabaseAction::Failure(message) => Err(async_graphql::Error::new(message)),
+            _ => Err(async_graphql::Error::new("Unexpected database action")),
+        }
     }
 }
 
-pub type MySchema =
-    Schema<QueryRoot, async_graphql::EmptyMutation, async_graphql::EmptySubscription>;
+pub type MySchema = Schema<QueryRoot, MutationRoot, async_graphql::EmptySubscription>;
 
 // MutationRoot for creating user
 pub struct MutationRoot;
 
+#[derive(SimpleObject)]
+pub struct MutationResponse {
+    pub success: bool,
+    pub message: String,
+}
+
+async fn handle_database_action(result: DatabaseAction) -> FieldResult<bool> {
+    match result {
+        DatabaseAction::Success => Ok(true),
+        DatabaseAction::Failure(message) => Err(FieldError::new(message)),
+        DatabaseAction::User(_) => Ok(true),
+    }
+}
+
 #[Object]
 impl MutationRoot {
-    pub async fn create_user(&self, _ctx: &Context<'_>, name: String) -> User {
-        User {
-            id: ID(Uuid::new_v4().to_string()),
-            name,
-        }
+    pub async fn create_user(&self, _ctx: &Context<'_>, name: String) -> FieldResult<bool> {
+        let db = _ctx.data::<MyContext>().unwrap().db.clone();
+        let success = handle_user_action(&db, UserAction::Create(name)).await?;
+        handle_database_action(success).await
     }
 
-    pub async fn delete_user(&self, _ctx: &Context<'_>, _id: ID) -> bool {
-        // Temporary implementation
-        true
+    pub async fn update_user(&self, _ctx: &Context<'_>, id: ID, name: String) -> FieldResult<bool> {
+        let db = _ctx.data::<MyContext>().unwrap().db.clone();
+        let user_id = id.parse::<i32>().unwrap();
+        let success = handle_user_action(&db, UserAction::Update(user_id, name)).await?;
+        handle_database_action(success).await
     }
 
-    pub async fn create_message(
-        &self,
-        _ctx: &Context<'_>,
-        user_id: ID,
-        text: String,
-    ) -> FieldResult<Message> {
-        let timestamp = Utc::now().timestamp();
-        Ok(Message {
-            id: ID(Uuid::new_v4().to_string()),
-            user_id,
-            text,
-            timestamp,
-        })
+    pub async fn delete_user(&self, _ctx: &Context<'_>, id: ID) -> FieldResult<bool> {
+        let db = _ctx.data::<MyContext>().unwrap().db.clone();
+        let user_id = id.parse::<i32>().unwrap();
+        let success = handle_user_action(&db, UserAction::Delete(user_id)).await?;
+        handle_database_action(success).await
     }
 }

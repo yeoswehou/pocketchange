@@ -6,14 +6,14 @@ use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter, Set,
 };
 
-enum UserAction {
+pub enum UserAction {
     Create(String),
     Delete(i32),
     Update(i32, String),
     Get(i32),
 }
 
-enum MessageAction {
+pub enum MessageAction {
     Created(i32, String),
     Update(i32, String),
     Delete(i32),
@@ -21,48 +21,83 @@ enum MessageAction {
     Print(i32),
 }
 
-async fn handle_user_action(db: &DatabaseConnection, action: UserAction) -> Result<(), DbErr> {
+pub enum DatabaseAction {
+    Success,
+    Failure(String),
+    User(user::Model),
+}
+
+pub async fn handle_user_action(
+    db: &DatabaseConnection,
+    action: UserAction,
+) -> Result<DatabaseAction, DbErr> {
     match action {
         UserAction::Create(name) => {
             create_user(db, &name).await?;
             println!("User created: {}", name);
+            Ok(DatabaseAction::Success)
         }
         UserAction::Delete(user_id) => {
             delete_user(db, user_id).await?;
             println!("User deleted: ID {}", user_id);
+            Ok(DatabaseAction::Success)
         }
         UserAction::Get(user_id) => {
-            get_user(db, user_id).await?;
+            let user = get_user(db, user_id).await?;
+            match user {
+                Some(user) => {
+                    println!("User found: ID {}, Name: {}", user.id, user.name);
+                    Ok(DatabaseAction::User(user))
+                }
+                None => {
+                    println!("User not found: ID {}", user_id);
+                    Ok(DatabaseAction::Failure("User not found".to_string()))
+                }
+            }
         }
         UserAction::Update(user_id, name) => {
             update_user(db, user_id, &name).await?;
             println!("User updated: ID {}, Name: {}", user_id, name);
+            Ok(DatabaseAction::Success)
         }
     }
-    Ok(())
 }
 
-async fn create_user(db: &DatabaseConnection, name: &str) -> Result<(), DbErr> {
+async fn create_user(db: &DatabaseConnection, name: &str) -> Result<DatabaseAction, DbErr> {
     let user = user::ActiveModel {
         name: Set(name.to_owned()),
         ..Default::default()
     };
     user.insert(db).await?;
-    Ok(())
+    Ok(DatabaseAction::Success)
 }
 
 // Update the user's name
-async fn update_user(db: &DatabaseConnection, user_id: i32, new_name: &str) -> Result<(), DbErr> {
+async fn update_user(
+    db: &DatabaseConnection,
+    user_id: i32,
+    new_name: &str,
+) -> Result<DatabaseAction, DbErr> {
     let filtered_user = user::Entity::find_by_id(user_id).one(db).await?;
-    let mut mut_filtered_user: user::ActiveModel = filtered_user.unwrap().into();
-    mut_filtered_user.name = Set(new_name.to_owned());
-    mut_filtered_user.update(db).await?;
-    Ok(())
+    if let Some(user) = filtered_user {
+        let mut mut_filtered_user: user::ActiveModel = user.into();
+        mut_filtered_user.name = Set(new_name.to_owned());
+        mut_filtered_user.update(db).await?;
+        Ok(DatabaseAction::Success)
+    } else {
+        println!("User not found: ID {}", user_id);
+        Ok(DatabaseAction::Failure("User not found".to_string()))
+    }
 }
 
-async fn delete_user(db: &DatabaseConnection, user_id: i32) -> Result<(), DbErr> {
-    user::Entity::delete_by_id(user_id).exec(db).await?;
-    Ok(())
+async fn delete_user(db: &DatabaseConnection, user_id: i32) -> Result<DatabaseAction, DbErr> {
+    let result = user::Entity::delete_by_id(user_id).exec(db).await?;
+    if result.rows_affected > 0 {
+        Ok(DatabaseAction::Success)
+    } else {
+        println!("User not found: ID {}", user_id);
+        Ok(DatabaseAction::Failure("User not found".to_string()))
+    }
 }
 
 async fn get_user(db: &DatabaseConnection, user_id: i32) -> Result<Option<user::Model>, DbErr> {
@@ -76,7 +111,7 @@ async fn print_users(db: DatabaseConnection) {
     println!("Users: {:?}", users);
 }
 
-async fn handle_message_action(
+pub async fn handle_message_action(
     db: &DatabaseConnection,
     action: MessageAction,
 ) -> Result<(), DbErr> {

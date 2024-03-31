@@ -1,4 +1,5 @@
 use async_graphql::{Object, ID};
+use chrono::{DateTime, Utc};
 
 pub struct User {
     pub id: ID,
@@ -19,8 +20,10 @@ impl User {
 pub struct Message {
     pub id: ID,
     pub user_id: ID,
-    pub text: String,
-    pub timestamp: i64,
+    pub content: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub parent_id: Option<i32>,
 }
 
 #[Object]
@@ -32,12 +35,19 @@ impl Message {
     async fn user_id(&self) -> &ID {
         &self.user_id
     }
-
-    async fn text(&self) -> &str {
-        &self.text
+    async fn content(&self) -> &str {
+        &self.content
     }
 
-    async fn timestamp(&self) -> i64 {
-        self.timestamp
+    async fn created_at(&self) -> String {
+        self.created_at.to_rfc3339()
+    }
+
+    async fn updated_at(&self) -> String {
+        self.updated_at.to_rfc3339()
+    }
+
+    async fn parent_id(&self) -> Option<i32> {
+        self.parent_id
     }
 }

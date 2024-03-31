@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+#![allow(unused_imports)]
 use async_graphql::http::{playground_source, GraphQLPlaygroundConfig};
 use async_graphql::{EmptyMutation, EmptySubscription, Schema};
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
@@ -10,7 +12,7 @@ use axum::{
 };
 use sea_orm::{Database, DatabaseConnection};
 
-use graphql::schema::{MySchema, QueryRoot};
+use graphql::schema::{MutationRoot, MyContext, MySchema, QueryRoot};
 
 mod db;
 mod entity;
@@ -30,12 +32,16 @@ async fn main() {
     dotenvy::dotenv().ok();
     let db_url = std::env::var("DATABASE_URL").expect("DATABASE_URL is not set");
     println!("Connecting to database: {}", db_url);
-    let _db: DatabaseConnection = Database::connect(db_url)
+    let db: DatabaseConnection = Database::connect(db_url)
         .await
         .expect("Database connection failed");
 
-    let schema = Schema::build(QueryRoot, EmptyMutation, EmptySubscription).finish();
-
+    let schema = Schema::build(QueryRoot, MutationRoot, EmptySubscription)
+        .data(MyContext::new(db))
+        .finish();
+    // let schema = Schema::build(QueryRoot, EmptyMutation, EmptySubscription)
+    //     .data(MyContext::new(db))
+    //     .finish();
     let app = Router::new()
         .route("/graphql", post(graphql_handler).get(graphql_handler))
         .route("/graphiql", get(graphql_playground))
