@@ -77,6 +77,12 @@ impl MigrationTrait for Migration {
                         .not_null()
                         .default(Expr::cust("CURRENT_TIMESTAMP")),
                 )
+                .col(
+                    ColumnDef::new(Message::UpdatedAt)
+                        .timestamp_with_time_zone()
+                        .not_null()
+                        .default(Expr::cust("CURRENT_TIMESTAMP")),
+                )
                 .foreign_key(
                     ForeignKeyCreateStatement::new()
                         .name("fk_messages_user_id")
@@ -84,13 +90,6 @@ impl MigrationTrait for Migration {
                         .to(User::Table, User::Id)
                         .on_delete(ForeignKeyAction::Cascade)
                         .on_update(ForeignKeyAction::Cascade),
-                )
-                .col(
-                    ColumnDef::new(Message::UpdatedAt)
-                        .timestamp_with_time_zone()
-                        .not_null()
-                        .default(Expr::cust("CURRENT_TIMESTAMP"))
-                        .extra("ON UPDATE CURRENT_TIMESTAMP".to_owned()),
                 )
                 .foreign_key(
                     ForeignKeyCreateStatement::new()

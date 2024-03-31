@@ -15,7 +15,12 @@ Requirements: Please create a simple Rust web server:
 ```
 docker-compose up -d db
 ```
-
+```
+docker-compose exec db psql -U username -d pocketchange
+```
+```
+ docker-compose down -v
+```
 ## How to run
 
 
