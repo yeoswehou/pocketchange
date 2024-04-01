@@ -345,11 +345,53 @@ Success
 
 - getMessagesByTimeRange
 ```graphql
+query {
+  getMessagesInTimeRangeForUser(userId: 9, start: "2023-01-01T00:00:00Z", end: "2025-01-02T00:00:00Z"){
+ 		content
+    createdAt
+  }
+}
+```
+```shell
+curl -X POST -H "Content-Type: application/json" -d '{"query": "query { getMessagesInTimeRangeForUser(userId: 9, start: \"2023-01-01T00:00:00Z\", end: \"2025-01-02T00:00:00Z\") { content createdAt } }"}' http://localhost:8080/graphql
 ```
 
 **Sample Response**
 
 Success
+```json
+{
+  "data": {
+    "getMessagesInTimeRangeForUser": [
+      {
+        "content": "I am not Batman",
+        "createdAt": "2024-03-31T17:46:33.139078+00:00",
+        "updatedAt": "2024-03-31T17:46:33.139078+00:00"
+      },
+      {
+        "content": "Test 2",
+        "createdAt": "2024-03-31T17:51:21.487446+00:00",
+        "updatedAt": "2024-03-31T17:51:21.487446+00:00"
+      },
+      {
+        "content": "Test 3",
+        "createdAt": "2024-03-31T17:51:22.315987+00:00",
+        "updatedAt": "2024-03-31T17:51:22.315987+00:00"
+      },
+      {
+        "content": "Test 4",
+        "createdAt": "2024-03-31T17:51:22.942003+00:00",
+        "updatedAt": "2024-03-31T17:51:22.942003+00:00"
+      },
+      {
+        "content": "Test 5",
+        "createdAt": "2024-03-31T17:51:23.638304+00:00",
+        "updatedAt": "2024-03-31T17:51:23.638304+00:00"
+      }
+    ]
+  }
+}
+```
 
 ## Checklist
 - [x] Database (sqlx)
