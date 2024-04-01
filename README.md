@@ -109,6 +109,10 @@ query {
 }
 ```
 
+```shell
+curl -X POST -H "Content-Type: application/json" -d '{"query": "query { getUser(id: 2) { name } }"}' http://localhost:8080/graphql
+```
+
 **Sample Response** 
 
 Success
@@ -152,6 +156,9 @@ mutation {
   }
 } 
 ```
+```shell
+curl -X POST -H "Content-Type: application/json" -d '{"query": "mutation { createUser(name: \"Superman\") { success message } }"}' http://localhost:8080/graphql
+```
 
 **Sample Response**
 
@@ -175,6 +182,10 @@ mutation {
     message
   }
 }
+```
+
+```shell
+curl -X POST -H "Content-Type: application/json" -d '{"query": "mutation { updateUser(id: 1, name: \"Peter Parker\") { success message } }"}' http://localhost:8080/graphql
 ```
 
 **Sample Response**
@@ -201,6 +212,10 @@ mutation {
 }
 ```
 
+```shell
+curl -X POST -H "Content-Type: application/json" -d '{"query": "mutation { deleteUser(id: 1) { success message } }"}' http://localhost:8080/graphql
+```
+
 **Sample Response**
 
 Success
@@ -224,7 +239,9 @@ mutation {
   }
 }
 ```
-
+```shell
+curl -X POST -H "Content-Type: application/json" -d '{"query": "mutation { createMessage(userId: 9, content: \"I am Batman\") { success } }"}' http://localhost:8080/graphql
+```
 **Sample Response**
 
 Success
@@ -245,6 +262,10 @@ mutation {
   success
   }
 }
+```
+
+```shell
+curl -X POST -H "Content-Type: application/json" -d '{"query": "mutation { updateMessage(id: 21, content: \"I am not Batman\") { success } }"}' http://localhost:8080/graphql
 ```
 
 **Sample Response**
@@ -270,6 +291,9 @@ mutation {
 }
 ```
 
+```shell
+curl -X POST -H "Content-Type: application/json" -d '{"query": "mutation { deleteMessage(id: 22) { success message } }"}' http://localhost:8080/graphql
+```
 **Sample Response**
 
 Success
@@ -295,6 +319,9 @@ query {
     content
   }
 }
+```
+```shell
+curl -X POST -H "Content-Type: application/json" -d '{"query": "query { getAllMessagesForUser(userId: 9) { id userId createdAt updatedAt content } }"}' http://localhost:8080/graphql
 ```
 
 **Sample Response**

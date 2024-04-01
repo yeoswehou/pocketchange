@@ -47,7 +47,9 @@ async fn main() {
         .route("/graphiql", get(graphql_playground))
         .layer(Extension(schema));
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:0").await.unwrap();
+    // let listener = tokio::net::TcpListener::bind("0.0.0.0:0").await.unwrap();
+    // Use fixed port for easy access to GraphiQL/ curl requests for testing
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await.unwrap();
     println!(
         "GraphiQL: http://localhost:{}/graphiql",
         listener.local_addr().unwrap().port()
