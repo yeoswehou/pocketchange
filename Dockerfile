@@ -1,18 +1,27 @@
-FROM rust:latest as builder
+FROM rust:bookworm as builder
+# use bookworm https://community.fly.io/t/rust-server-missing-libssl-so-3-on-new-deploy/15114/2
 
 WORKDIR /app
-COPY . .
 
-RUN apt-get update && apt-get install -y libpq-dev libssl-dev
+RUN apt-get update && apt-get install -y libpq-dev libssl-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY . .
 RUN cargo build --release
 
+# Copy the entrypoint script and make sure it's executable
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
-ENTRYPOINT ["entrypoint.sh"]
+# Runtime
+FROM debian:bookworm-slim
 
-FROM debian:buster-slim
+RUN apt-get update && apt-get install -y libpq5 openssl && \
+    rm -rf /var/lib/apt/lists/*
 
-RUN apt-get update && apt-get install -y libpq5
 COPY --from=builder /app/target/release/backend /app/backend
+COPY --from=builder /usr/local/bin/entrypoint.sh /usr/local/bin/entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
 CMD ["/app/backend"]

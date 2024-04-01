@@ -1,14 +1,11 @@
-#![allow(dead_code)]
-#![allow(unused_imports)]
+use async_graphql::{Context, FieldError, FieldResult, Object, Schema, SimpleObject, ID};
+use chrono::prelude::*;
+use sea_orm::DatabaseConnection;
 
 use crate::db::database::{
     handle_message_action, handle_user_action, DatabaseAction, MessageAction, UserAction,
 };
 use crate::graphql::types::{Message, User};
-use async_graphql::{Context, FieldError, FieldResult, Object, Schema, SimpleObject, ID};
-use chrono::prelude::*;
-use sea_orm::DatabaseConnection;
-use tracing_subscriber::registry::Data;
 
 pub struct MyContext {
     db: DatabaseConnection,

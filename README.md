@@ -11,6 +11,10 @@ Requirements: Please create a simple Rust web server:
 * (advanced. optional) Each message can be replied to. and it can be nested (reply -> reply -> reply ... should support)
 * (advanced. optional) Each user can be registered/login by ID/password. Only the author can modify/delete the comments (the user should be identified by something. Authorization header or so on?)
 
+## Rust Version
+Tested with
+- rustc 1.77.1 (7cf61ebde 2024-03-27)
+
 ## Libraries
 - async-graphql
 - Axum
@@ -53,24 +57,32 @@ Requirements: Please create a simple Rust web server:
     └── main.rs
 ```
 
-## How to run
-This will build the app and start the server.
-```
+## How to Run
+To build the app and start the server, run the following commands:
+```bash
+docker-compose build
 docker-compose up app
 ```
 
-Alternatively, you can run the following commands:
-```
+Alternatively, you can start the database container separately and run the application using Cargo:
+```bash
 docker-compose up -d db
 cargo run
 ```
 
-## How to test
+## How to Test
+Needs SeaORM CLI to run the migrations for the test. 
+
+Install it using the following command:
+```bash
+cargo install sea-orm-cli
 ```
+To run the tests, use the following commands:
+```bash
 docker-compose up -d test-db
+sea-orm-cli migration up -u postgresql://username:password@localhost:5433/pocketchangetest
 cargo test
 ```
-
 ## Environment Variables
 Stored in a .env file because this is an assignment. It will be handled differently in production (GitHub Secrets etc.).
 
@@ -95,8 +107,8 @@ Run the following command to remove the database
 
 
 # Access GraphQL Playground
-It dynamically scans for an available port. The port is printed to the console.
-The app will be available at http://localhost:PORT/graphql . 
+I will use port 8080 for the GraphQL endpoint for easy access. (could be dynamic in production) 
+The app will be available at http://localhost:8080/graphql . 
 
 
 # User Mutations

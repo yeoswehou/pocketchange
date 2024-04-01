@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use crate::entity::{message, user};
 use chrono::{DateTime, Utc};
 use sea_orm::{
@@ -20,7 +18,6 @@ pub enum MessageAction {
     GetInTimeRangeForUser(i32, DateTime<Utc>, DateTime<Utc>),
     Update(i32, String),
     Delete(i32),
-    Print(i32),
 }
 
 pub enum DatabaseAction {
@@ -109,12 +106,6 @@ async fn get_user(db: &DatabaseConnection, user_id: i32) -> Result<Option<user::
     Ok(user)
 }
 
-// Print functions for users and messages for easier testing
-async fn print_users(db: DatabaseConnection) {
-    let users = user::Entity::find().all(&db).await.unwrap();
-    println!("Users: {:?}", users);
-}
-
 pub async fn handle_message_action(
     db: &DatabaseConnection,
     action: MessageAction,
@@ -158,10 +149,6 @@ pub async fn handle_message_action(
         MessageAction::GetInTimeRangeForUser(user_id, start, end) => {
             let messages = get_messages_in_time_range(db, user_id, start, end).await?;
             Ok(DatabaseAction::Messages(messages))
-        }
-        MessageAction::Print(user_id) => {
-            print_messages(db, user_id).await;
-            Ok(DatabaseAction::Success)
         }
     }
 }
@@ -243,18 +230,10 @@ async fn get_messages_in_time_range(
     Ok(messages)
 }
 
-async fn print_messages(db: &DatabaseConnection, user_id: i32) {
-    let messages = message::Entity::find()
-        .filter(message::Column::UserId.eq(user_id))
-        .all(db)
-        .await
-        .unwrap();
-    println!("Messages: {:?}", messages);
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::TimeZone;
     use dotenvy::dotenv;
     use migration::{Migrator, MigratorTrait};
     use sea_orm::Database;
