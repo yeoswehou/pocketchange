@@ -10,6 +10,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
+use migration::{Migrator, MigratorTrait};
 use sea_orm::{Database, DatabaseConnection};
 
 use graphql::schema::{MutationRoot, MyContext, MySchema, QueryRoot};
@@ -35,6 +36,7 @@ async fn main() {
     let db: DatabaseConnection = Database::connect(db_url)
         .await
         .expect("Database connection failed");
+    let _ = Migrator::up(&db, None).await;
 
     let schema = Schema::build(QueryRoot, MutationRoot, EmptySubscription)
         .data(MyContext::new(db))

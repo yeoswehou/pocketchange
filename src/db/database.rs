@@ -256,6 +256,7 @@ async fn print_messages(db: &DatabaseConnection, user_id: i32) {
 mod tests {
     use super::*;
     use dotenvy::dotenv;
+    use migration::{Migrator, MigratorTrait};
     use sea_orm::Database;
     use std::env;
     use tokio::time;
@@ -271,6 +272,9 @@ mod tests {
             .exec(&db)
             .await
             .unwrap();
+        Migrator::up(&db, None)
+            .await
+            .expect("Failed to apply migrations");
         db
     }
 

@@ -21,7 +21,6 @@ enum Message {
     ParentId,
 }
 
-
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
@@ -37,71 +36,56 @@ impl MigrationTrait for Migration {
                             .auto_increment()
                             .primary_key(),
                     )
+                    .col(ColumnDef::new(User::Name).string().not_null().unique_key())
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .create_table(
+                Table::create()
+                    .table(Message::Table)
+                    .if_not_exists()
                     .col(
-                        ColumnDef::new(User::Name)
-                            .string()
+                        ColumnDef::new(Message::Id)
+                            .integer()
                             .not_null()
-                            .unique_key(),
+                            .auto_increment()
+                            .primary_key(),
+                    )
+                    .col(ColumnDef::new(Message::UserId).integer().not_null())
+                    .col(ColumnDef::new(Message::Content).text().not_null())
+                    .col(ColumnDef::new(Message::ParentId).integer().null())
+                    .col(
+                        ColumnDef::new(Message::CreatedAt)
+                            .timestamp_with_time_zone()
+                            .not_null()
+                            .default(Expr::cust("CURRENT_TIMESTAMP")),
+                    )
+                    .col(
+                        ColumnDef::new(Message::UpdatedAt)
+                            .timestamp_with_time_zone()
+                            .not_null()
+                            .default(Expr::cust("CURRENT_TIMESTAMP")),
+                    )
+                    .foreign_key(
+                        ForeignKeyCreateStatement::new()
+                            .name("fk_messages_user_id")
+                            .from(Message::Table, Message::UserId)
+                            .to(User::Table, User::Id)
+                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_update(ForeignKeyAction::Cascade),
+                    )
+                    .foreign_key(
+                        ForeignKeyCreateStatement::new()
+                            .name("fk_messages_parent_id")
+                            .from(Message::Table, Message::ParentId)
+                            .to(Message::Table, Message::Id)
+                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_update(ForeignKeyAction::Cascade),
                     )
                     .to_owned(),
             )
             .await?;
-        manager.create_table(
-            Table::create()
-                .table(Message::Table)
-                .if_not_exists()
-                .col(
-                    ColumnDef::new(Message::Id)
-                        .integer()
-                        .not_null()
-                        .auto_increment()
-                        .primary_key(),
-                )
-                .col(
-                    ColumnDef::new(Message::UserId)
-                        .integer()
-                        .not_null(),
-                )
-                .col(
-                    ColumnDef::new(Message::Content)
-                        .text()
-                        .not_null(),
-                )
-                .col(
-                    ColumnDef::new(Message::ParentId)
-                        .integer()
-                        .null(),
-                )
-                .col(
-                    ColumnDef::new(Message::CreatedAt)
-                        .timestamp_with_time_zone()
-                        .not_null()
-                        .default(Expr::cust("CURRENT_TIMESTAMP")),
-                )
-                .col(
-                    ColumnDef::new(Message::UpdatedAt)
-                        .timestamp_with_time_zone()
-                        .not_null()
-                        .default(Expr::cust("CURRENT_TIMESTAMP")),
-                )
-                .foreign_key(
-                    ForeignKeyCreateStatement::new()
-                        .name("fk_messages_user_id")
-                        .from(Message::Table, Message::UserId)
-                        .to(User::Table, User::Id)
-                        .on_delete(ForeignKeyAction::Cascade)
-                        .on_update(ForeignKeyAction::Cascade),
-                )
-                .foreign_key(
-                    ForeignKeyCreateStatement::new()
-                        .name("fk_messages_parent_id")
-                        .from(Message::Table, Message::ParentId)
-                        .to(Message::Table, Message::Id)
-                        .on_delete(ForeignKeyAction::Cascade)
-                        .on_update(ForeignKeyAction::Cascade),
-                )
-                .to_owned(),
-        ).await?;
         Ok(())
     }
 
@@ -109,7 +93,9 @@ impl MigrationTrait for Migration {
         manager
             .drop_table(Table::drop().table(User::Table).to_owned())
             .await?;
-        manager.drop_table(Table::drop().table(Message::Table).to_owned()).await?;
+        manager
+            .drop_table(Table::drop().table(Message::Table).to_owned())
+            .await?;
 
         Ok(())
     }

@@ -11,9 +11,55 @@ Requirements: Please create a simple Rust web server:
 * (advanced. optional) Each message can be replied to. and it can be nested (reply -> reply -> reply ... should support)
 * (advanced. optional) Each user can be registered/login by ID/password. Only the author can modify/delete the comments (the user should be identified by something. Authorization header or so on?)
 
+## Libraries
+- async-graphql
+- Axum
+- PostgresSQL
+- SeaORM
+
+## Structure
+├── .github 
+│   ├── workflows
+│       ├── rust.yml (CI/CD GitHub Actions)
+├── Cargo.lock
+├── Cargo.toml
+├── Dockerfile
+├── README.md
+├── docker-compose.yml (Set up for PostgresSQL and Test Database)
+├── entrypoint.sh
+├── migration (Migration using SeaORM )
+│   ├── Cargo.lock
+│   ├── Cargo.toml
+│   ├── README.md
+│   └── src
+│       ├── lib.rs
+│       ├── m20220101_000001_create_table.rs
+│       └── main.rs
+└── src
+├── db (PostgresSQL Connection)
+│   ├── database.rs
+│   └── mod.rs
+├── entity (SeaORM Entities)
+│   ├── message.rs
+│   ├── mod.rs
+│   └── user.rs
+├── graphql (GraphQL Schema)
+│   ├── mod.rs
+│   ├── schema.rs
+│   └── types.rs
+└── main.rs 
+
+
 ## How to run
+This will build the app and start the server.
 ```
 docker-compose up app
+```
+
+Alternatively, you can run the following commands:
+```
+docker-compose up -d db
+cargo run
 ```
 
 ## How to test
@@ -21,6 +67,29 @@ docker-compose up app
 docker-compose up -d test-db
 cargo test
 ```
+
+## Environment Variables
+Stored in a .env file because this is an assignment. It will be handled differently in production (GitHub Secrets etc.).
+
+## Docker Commands for setup
+Run the following command to start the database for use
+```
+docker-compose up -d db
+```
+Run the following command to connect to the database for testing
+```
+docker-compose up -d test-db
+```
+Run the following command to connect to the database for testing
+```
+docker-compose exec db psql -U username -d pocketchange
+```
+Run the following command to remove the database
+```
+ docker-compose down -v
+```
+
+
 
 # Access GraphQL Playground
 It dynamically scans for an available port. The port is printed to the console.
@@ -235,28 +304,6 @@ Success
 **Sample Response**
 
 Success
-
-## Environment Variables
-Stored in a .env file because this is an assignment. It will be handled differently in production (GitHub Secrets etc.).
-
-## Docker Commands for setup 
-Run the following command to start the database for use
-```
-docker-compose up -d db
-```
-Run the following command to connect to the database for testing
-```
-docker-compose up -d test-db
-```
-Run the following command to connect to the database for testing
-```
-docker-compose exec db psql -U username -d pocketchange
-```
-Run the following command to remove the database
-```
- docker-compose down -v
-```
-
 
 ## Checklist
 - [x] Database (sqlx)
