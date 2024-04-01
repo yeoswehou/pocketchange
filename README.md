@@ -110,6 +110,53 @@ Run the following command to remove the database
 I will use port 8080 for the GraphQL endpoint for easy access. (could be dynamic in production) 
 The app will be available at http://localhost:8080/graphql . 
 
+# GraphQL Schema
+```graphql
+schema {
+  query: QueryRoot
+  mutation: MutationRoot
+}
+
+type Message {
+  id: ID!
+  userId: ID!
+  content: String!
+  createdAt: String!
+  updatedAt: String!
+  parentId: Int
+}
+
+type MutationResponse {
+  success: Boolean!
+  message: String!
+}
+
+type MutationRoot {
+  createUser(name: String!): MutationResponse!
+  updateUser(id: ID!, name: String!): MutationResponse!
+  deleteUser(id: ID!): MutationResponse!
+  createMessage(userId: ID!, content: String!): MutationResponse!
+  deleteMessage(id: ID!): MutationResponse!
+  updateMessage(id: ID!, content: String!): MutationResponse!
+}
+
+type QueryRoot {
+  getUser(id: ID!): User!
+  getMessage(id: ID!): Message
+  getAllMessagesForUser(userId: ID!): [Message!]!
+getMessagesInTimeRangeForUser(
+userId: ID!
+start: String!
+end: String!
+): [Message!]!
+}
+
+type User {
+id: ID!
+name: String!
+}
+
+```
 
 # User Mutations
 - **getUser**
@@ -412,7 +459,7 @@ Success
   - [X] Create tables
   - [X] Query for User
   - [X] Query for Message
-  - Test
+  - [X] Test
 - [X] GraphQL (async-graphql)
   - [X] Endpoint
   - [X] Schema
