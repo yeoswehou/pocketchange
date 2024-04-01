@@ -233,7 +233,6 @@ async fn get_messages_in_time_range(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::TimeZone;
     use dotenvy::dotenv;
     use migration::{Migrator, MigratorTrait};
     use sea_orm::Database;
@@ -486,7 +485,7 @@ mod tests {
         time::sleep(time::Duration::from_secs(3)).await;
 
         let start = chrono::Utc::now() - chrono::Duration::days(1);
-        let end = chrono::Utc::now();
+        let end = chrono::Utc::now() + chrono::Duration::days(1);
         let messages = get_messages_in_time_range(&db, user_id, start, end).await;
         let result = messages.expect("Failed to get messages in time range");
         match result.len() {
