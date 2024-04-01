@@ -23,6 +23,8 @@ services:
       - test-postgres-data:/var/lib/postgresql/data
   app:
     build: .
+    ports:
+      - "8080:8080"
     environment:
       DB_HOST: db
       POSTGRES_USER: username

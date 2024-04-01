@@ -1,15 +1,14 @@
-use async_graphql::http::{playground_source, GraphQLPlaygroundConfig};
 use async_graphql::{EmptySubscription, Schema};
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
 use axum::{
     extract::Extension,
-    response::Html,
-    response::IntoResponse,
+    response::{Html, IntoResponse},
     routing::{get, post},
     Router,
 };
 use migration::{Migrator, MigratorTrait};
 use sea_orm::{Database, DatabaseConnection};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use graphql::schema::{MutationRoot, MyContext, MySchema, QueryRoot};
 
@@ -22,36 +21,47 @@ async fn graphql_handler(schema: Extension<MySchema>, req: GraphQLRequest) -> Gr
 }
 
 async fn graphql_playground() -> impl IntoResponse {
-    let html = playground_source(GraphQLPlaygroundConfig::new("/graphql"));
+    let html = async_graphql::http::playground_source(
+        async_graphql::http::GraphQLPlaygroundConfig::new("/graphql"),
+    );
     Html(html)
 }
 
-#[tokio::main]
-async fn main() {
+async fn app() -> Router {
     dotenvy::dotenv().ok();
     let db_url = std::env::var("DATABASE_URL").expect("DATABASE_URL is not set");
-    println!("Connecting to database: {}", db_url);
+    tracing::info!("Connecting to database: {}", db_url);
+
     let db: DatabaseConnection = Database::connect(db_url)
         .await
         .expect("Database connection failed");
+
     let _ = Migrator::up(&db, None).await;
 
     let schema = Schema::build(QueryRoot, MutationRoot, EmptySubscription)
         .data(MyContext::new(db))
         .finish();
 
-    let app = Router::new()
+    Router::new()
         .route("/graphql", post(graphql_handler).get(graphql_handler))
         .route("/graphiql", get(graphql_playground))
-        .layer(Extension(schema));
+        .layer(Extension(schema))
+}
 
-    // let listener = tokio::net::TcpListener::bind("0.0.0.0:0").await.unwrap();
-    // Use fixed port for easy access to GraphiQL/ curl requests for testing
+#[tokio::main]
+async fn main() {
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::fmt::layer())
+        .init();
+
+    let app = app().await;
+
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await.unwrap();
-    println!(
+    tracing::info!(
         "GraphiQL: http://localhost:{}/graphiql",
         listener.local_addr().unwrap().port()
     );
+
     axum::serve(listener, app.into_make_service())
         .await
         .unwrap();
