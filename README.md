@@ -17,38 +17,41 @@ Requirements: Please create a simple Rust web server:
 - PostgresSQL
 - SeaORM
 
-## Structure
+## Project Structure
+
+```plaintext
+.
 ├── .github 
-│   ├── workflows
-│       ├── rust.yml (CI/CD GitHub Actions)
+│   ├── workflows
+│       ├── rust.yml  # CI/CD GitHub Actions
 ├── Cargo.lock
 ├── Cargo.toml
 ├── Dockerfile
 ├── README.md
-├── docker-compose.yml (Set up for PostgresSQL and Test Database)
+├── docker-compose.yml  # Setup for PostgreSQL and Test Database
 ├── entrypoint.sh
-├── migration (Migration using SeaORM )
-│   ├── Cargo.lock
-│   ├── Cargo.toml
-│   ├── README.md
-│   └── src
-│       ├── lib.rs
-│       ├── m20220101_000001_create_table.rs
-│       └── main.rs
+├── migration  # Migration using SeaORM
+│   ├── Cargo.lock
+│   ├── Cargo.toml
+│   ├── README.md
+│   └── src
+│       ├── lib.rs
+│       ├── m20220101_000001_create_table.rs
+│       └── main.rs
 └── src
-├── db (PostgresSQL Connection)
-│   ├── database.rs
-│   └── mod.rs
-├── entity (SeaORM Entities)
-│   ├── message.rs
-│   ├── mod.rs
-│   └── user.rs
-├── graphql (GraphQL Schema)
-│   ├── mod.rs
-│   ├── schema.rs
-│   └── types.rs
-└── main.rs 
-
+    ├── db  # PostgreSQL Connection
+    │   ├── database.rs
+    │   └── mod.rs
+    ├── entity  # SeaORM Entities
+    │   ├── message.rs
+    │   ├── mod.rs
+    │   └── user.rs
+    ├── graphql  # GraphQL Schema
+    │   ├── mod.rs
+    │   ├── schema.rs
+    │   └── types.rs
+    └── main.rs
+```
 
 ## How to run
 This will build the app and start the server.
