@@ -20,7 +20,7 @@ Requirements: Please create a simple Rust web server:
 ## Project Structure
 
 ```plaintext
-.
+
 ├── .github 
 │   ├── workflows
 │       ├── rust.yml  # CI/CD GitHub Actions
@@ -262,11 +262,27 @@ Success
 
 - **deleteMessage**
 ```graphql
+mutation {
+  deleteMessage(id: 22) {
+    success
+    message
+  }
+}
 ```
 
 **Sample Response**
 
 Success
+```json
+{
+  "data": {
+    "deleteMessage": {
+      "success": true,
+      "message": "Action succeeded"
+    }
+  }
+}
+```
 
 - getMessagesByUser
 ```graphql
