@@ -10,7 +10,6 @@ services:
       POSTGRES_DB: pocketchange
     volumes:
       - postgres-data:/var/lib/postgresql/data
-
   test-db:
     image: postgres
     ports:
@@ -21,6 +20,16 @@ services:
       POSTGRES_DB: pocketchangetest
     volumes:
       - test-postgres-data:/var/lib/postgresql/data
+  test-integration:
+    image: postgres
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRES_USER: username
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: pocketchangeintegration
+    volumes:
+        - test-integration-postgres-data:/var/lib/postgresql/data
   app:
     build: .
     ports:
@@ -36,3 +45,4 @@ services:
 volumes:
   postgres-data:
   test-postgres-data:
+  test-integration-postgres-data:

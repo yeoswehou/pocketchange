@@ -21,6 +21,7 @@ dotenvy = "0.15.7"
 async-trait = "0.1.78"
 migration = { path = "migration" }
 tower = "0.4.13"
+futures = "0.3.30"
 
 [dev-dependencies]
 # For pre-commit

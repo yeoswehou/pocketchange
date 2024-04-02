@@ -53,16 +53,15 @@ mod tests {
         body::{to_bytes, Body},
         http::{self, Request, StatusCode},
     };
-    use futures::future::join_all;
-    use sea_orm::Database;
-    use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
+
+    use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
+    use sea_orm::{ConnectionTrait, Database};
     use serde_json::{json, Value};
-    use std::collections::HashMap;
     use tower::ServiceExt;
 
     async fn setup_app() -> Router {
         dotenvy::dotenv().ok();
-        let db_url = std::env::var("TEST_DATABASE_URL").expect("DATABASE_URL is not set");
+        let db_url = std::env::var("TEST_INTEGRATION_URL").expect("DATABASE_URL is not set");
 
         let db: DatabaseConnection = Database::connect(db_url)
             .await
@@ -92,63 +91,169 @@ mod tests {
             .exec(db)
             .await
             .unwrap();
+        // Reset auto increment
+        let sql = "ALTER SEQUENCE user_id_seq RESTART WITH 1;";
+        db.execute(sea_orm::Statement::from_string(
+            db.get_database_backend(),
+            sql.to_owned(),
+        ))
+        .await
+        .expect("Could not reset auto increment");
+        let sql = "ALTER SEQUENCE message_id_seq RESTART WITH 1;";
+        db.execute(sea_orm::Statement::from_string(
+            db.get_database_backend(),
+            sql.to_owned(),
+        ))
+        .await
+        .expect("Could not reset auto increment");
 
-        let mut users = HashMap::new();
-        users.insert("Alice", 1);
-        users.insert("Bob", 2);
-        users.insert("Charlie", 3);
-        users.insert("David", 4);
-        users.insert("Eve", 5);
-        let user_futures: Vec<_> = users
-            .keys()
-            .map(|name| handle_user_action(db, UserAction::Create(name.to_string())))
-            .collect();
+        let users = vec![
+            ("Alice", 1),
+            ("Bob", 2),
+            ("Charlie", 3),
+            ("David", 4),
+            ("Eve", 5),
+        ];
 
-        join_all(user_futures).await;
+        // Create users sequentially
+        for (name, _) in users {
+            handle_user_action(db, UserAction::Create(name.to_string()))
+                .await
+                .unwrap();
+        }
 
-        let mut messages = HashMap::new();
-        messages.insert("Hello, world!", 1);
-        messages.insert("I am Alice", 1);
-        messages.insert("Hi, there!", 2);
-        messages.insert("How are you?", 3);
-        messages.insert("I'm fine, thank you!", 4);
-        messages.insert("Goodbye!", 5);
-        let message_futures: Vec<_> = messages
-            .iter()
-            .map(|(content, user_id)| {
-                handle_message_action(db, MessageAction::Create(*user_id, content.to_string()))
-            })
-            .collect();
+        let messages = vec![
+            ("Hello, world!", 1),
+            ("I am Alice", 1),
+            ("Hi, there!", 2),
+            ("How are you?", 3),
+            ("I'm fine, thank you!", 4),
+            ("Goodbye!", 5),
+        ];
 
-        join_all(message_futures).await;
+        // Create messages sequentially
+        for (content, user_id) in messages {
+            handle_message_action(db, MessageAction::Create(user_id, content.to_string()))
+                .await
+                .unwrap();
+        }
     }
-    // 
-    // #[tokio::test]
-    // async fn test_get_user_found() {
-    //     let app = setup_app().await;
-    //     let req = Request::builder()
-    //         .uri("/graphql")
-    //         .method(http::Method::POST)
-    //         .header(http::header::CONTENT_TYPE, "application/json")
-    //         .body(Body::from(r#"{"query":"{ getUser(id: 2) { id name } }"}"#))
-    //         .unwrap();
-    // 
-    //     let response = app.oneshot(req).await.expect("Failed to execute request");
-    // 
-    //     assert_eq!(response.status(), StatusCode::OK);
-    //     // Parse
-    //     let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
-    //     let value: Value = serde_json::from_slice(&body).unwrap();
-    //     assert_eq!(
-    //         value,
-    //         json!({
-    //             "data": {
-    //                 "getUser": {
-    //                     "id": 2,
-    //                     "name": "Bob"
-    //                 }
-    //             }
-    //         })
-    //     );
-    // }
+
+    #[tokio::test]
+    async fn test_get_user_found() {
+        let app = setup_app().await;
+        let req = Request::builder()
+            .uri("/graphql")
+            .method(http::Method::POST)
+            .header(http::header::CONTENT_TYPE, "application/json")
+            .body(Body::from(r#"{"query":"{ getUser(id: 2) { id name } }"}"#))
+            .unwrap();
+
+        let response = app.oneshot(req).await.expect("Failed to execute request");
+
+        assert_eq!(response.status(), StatusCode::OK);
+        // Parse
+        let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let value: Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(
+            value,
+            json!({
+                "data": {
+                    "getUser": {
+                        "id": "2",
+                        "name": "Bob"
+                    }
+                }
+            })
+        );
+    }
+
+    #[tokio::test]
+    async fn test_get_user_not_found() {
+        let app = setup_app().await;
+        let req = Request::builder()
+            .uri("/graphql")
+            .method(http::Method::POST)
+            .header(http::header::CONTENT_TYPE, "application/json")
+            .body(Body::from(
+                r#"{"query":"{ getUser(id: 99999) { id name } }"}"#,
+            ))
+            .unwrap();
+
+        let response = app.oneshot(req).await.expect("Failed to execute request");
+
+        assert_eq!(response.status(), StatusCode::OK);
+        // Parse
+        let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let value: Value = serde_json::from_slice(&body).unwrap();
+        // Get the message from the error
+        // Check if the "errors" field exists
+        if let Some(errors) = value.get("errors") {
+            for error in errors.as_array().unwrap() {
+                if let Some(message) = error.get("message") {
+                    assert_eq!(message, "User not found");
+                }
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn test_update_user() {
+        let app = setup_app().await;
+        let req = Request::builder()
+            .uri("/graphql")
+            .method(http::Method::POST)
+            .header(http::header::CONTENT_TYPE, "application/json")
+            .body(Body::from(r#"{"query":"mutation { updateUser(id: 2, name: \"Bobby\") { success message } }"}"#))
+            .unwrap();
+
+        let response = app.oneshot(req).await.expect("Failed to execute request");
+
+        assert_eq!(response.status(), StatusCode::OK);
+        // Parse
+        let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let value: Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(
+            value,
+            json!({
+                "data": {
+                      "updateUser": {
+                    "success": true,
+                    "message": "Action succeeded"
+                }
+                }
+            })
+        );
+    }
+
+    #[tokio::test]
+    async fn test_delete_user() {
+        let app = setup_app().await;
+        let req = Request::builder()
+            .uri("/graphql")
+            .method(http::Method::POST)
+            .header(http::header::CONTENT_TYPE, "application/json")
+            .body(Body::from(
+                r#"{"query":"mutation { deleteUser(id: 2) { success message } }"}"#,
+            ))
+            .unwrap();
+
+        let response = app.oneshot(req).await.expect("Failed to execute request");
+
+        assert_eq!(response.status(), StatusCode::OK);
+        // Parse
+        let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let value: Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(
+            value,
+            json!({
+                "data": {
+                      "deleteUser": {
+                    "success": true,
+                    "message": "Action succeeded"
+                }
+                }
+            })
+        );
+    }
 }
