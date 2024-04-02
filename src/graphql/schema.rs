@@ -126,6 +126,51 @@ impl QueryRoot {
             _ => Err(async_graphql::Error::new("Failed to fetch messages")),
         }
     }
+
+    async fn get_message_thread(
+        &self,
+        ctx: &Context<'_>,
+        message_id: i32,
+    ) -> FieldResult<Vec<Message>> {
+        let db = ctx.data_unchecked::<MyContext>().db.clone();
+        let messages =
+            handle_message_action(&db, MessageAction::GetMessagesInThread(message_id)).await?;
+
+        match messages {
+            DatabaseAction::MessageThread(messages) => {
+                let mut result_messages = Vec::new();
+
+                for (msg, user) in messages {
+                    let user_info = if let Some(user) = user {
+                        User {
+                            id: ID(user.id.to_string()),
+                            name: user.name,
+                        }
+                    } else {
+                        User {
+                            id: Default::default(),
+                            name: "".to_string(),
+                        }
+                    };
+
+                    let message = Message {
+                        id: ID(msg.id.to_string()),
+                        user_id: ID(msg.user_id.to_string()),
+                        content: msg.content,
+                        created_at: msg.created_at,
+                        updated_at: msg.updated_at,
+                        parent_id: msg.parent_id,
+                        user: user_info,
+                    };
+
+                    result_messages.push(message);
+                }
+
+                Ok(result_messages)
+            }
+            _ => Err(async_graphql::Error::new("Failed to fetch messages")),
+        }
+    }
 }
 
 pub type MySchema = Schema<QueryRoot, MutationRoot, async_graphql::EmptySubscription>;
@@ -157,6 +202,10 @@ async fn handle_database_action(result: DatabaseAction) -> FieldResult<MutationR
         DatabaseAction::Messages(_) => Ok(MutationResponse {
             success: true,
             message: "Messages action succeeded".to_string(),
+        }),
+        DatabaseAction::MessageThread(_) => Ok(MutationResponse {
+            success: true,
+            message: "Message thread action succeeded".to_string(),
         }),
     }
 }

@@ -128,6 +128,7 @@ type Message {
   createdAt: String!
   updatedAt: String!
   parentId: Int
+  user: User!
 }
 
 type MutationResponse {
@@ -139,7 +140,7 @@ type MutationRoot {
   createUser(name: String!): MutationResponse!
   updateUser(id: ID!, name: String!): MutationResponse!
   deleteUser(id: ID!): MutationResponse!
-  createMessage(userId: ID!, content: String!): MutationResponse!
+  createMessage(userId: ID!, content: String!, parentId: Int): MutationResponse!
   deleteMessage(id: ID!): MutationResponse!
   updateMessage(id: ID!, content: String!): MutationResponse!
 }
@@ -148,18 +149,18 @@ type QueryRoot {
   getUser(id: ID!): User!
   getMessage(id: ID!): Message
   getAllMessagesForUser(userId: ID!): [Message!]!
-getMessagesInTimeRangeForUser(
-userId: ID!
-start: String!
-end: String!
-): [Message!]!
+  getMessagesInTimeRangeForUser(
+    userId: ID!
+    start: String!
+    end: String!
+  ): [Message!]!
+  getMessageThread(messageId: Int!): [Message!]!
 }
 
 type User {
-id: ID!
-name: String!
+  id: ID!
+  name: String!
 }
-
 ```
 
 # User Mutations
@@ -295,6 +296,7 @@ Success
 
 ## Message Mutations
 - **createMessage**
+- NO NESTING
 ```graphql
 mutation {
   createMessage(userId: 9, content: "I am Batman") {
@@ -305,6 +307,21 @@ mutation {
 ```shell
 curl -X POST -H "Content-Type: application/json" -d '{"query": "mutation { createMessage(userId: 9, content: \"I am Batman\") { success } }"}' http://localhost:8080/graphql
 ```
+
+- NESTING
+```graphql
+mutation {
+  createMessage(userId: 9, content: "I am Batman", parentId: 2) {
+  success
+  }
+}
+```
+```shell
+curl -X POST -H "Content-Type: application/json" \
+     -d '{"query": "mutation { createMessage(userId: 9, content: \"I am Batman\", parentId: 2) { success } }"}' \
+     http://localhost:8080/graphql
+```
+
 **Sample Response**
 
 Success
@@ -456,6 +473,91 @@ Success
 }
 ```
 
+getMessageThread
+```graphql
+query {
+  getMessageThread(messageId:6) {
+    id
+    content
+    updatedAt
+    createdAt
+    parentId
+    user {
+      name
+    }
+  }
+}
+```
+
+```shell
+curl -X POST -H "Content-Type: application/json" \
+     -d '{"query": "query { getMessageThread(messageId: 6) { id content updatedAt createdAt parentId user { name } } }"}' \
+      http://localhost:8080/graphql
+```
+
+**Sample Response**
+
+Success
+```json
+
+  "data": {
+    "getMessageThread": [
+      {
+        "id": "6",
+        "content": "A",
+        "updatedAt": "2024-04-02T08:30:21.852426+00:00",
+        "createdAt": "2024-04-02T08:30:21.852426+00:00",
+        "parentId": null,
+        "user": {
+          "name": "Carl"
+        }
+      },
+      {
+        "id": "7",
+        "content": "A",
+        "updatedAt": "2024-04-02T08:30:45.155447+00:00",
+        "createdAt": "2024-04-02T08:30:45.155447+00:00",
+        "parentId": 6,
+        "user": {
+          "name": "Carl"
+        }
+      },
+      {
+        "id": "8",
+        "content": "B",
+        "updatedAt": "2024-04-02T08:30:52.813426+00:00",
+        "createdAt": "2024-04-02T08:30:52.813426+00:00",
+        "parentId": 7,
+        "user": {
+          "name": "Carl"
+        }
+      },
+      {
+        "id": "11",
+        "content": "D",
+        "updatedAt": "2024-04-02T08:31:31.870908+00:00",
+        "createdAt": "2024-04-02T08:31:31.870908+00:00",
+        "parentId": 8,
+        "user": {
+          "name": "Carl"
+        }
+      },
+      {
+        "id": "12",
+        "content": "XYZ",
+        "updatedAt": "2024-04-02T09:11:06.281594+00:00",
+        "createdAt": "2024-04-02T09:11:06.281594+00:00",
+        "parentId": 11,
+        "user": {
+          "name": "Dominik"
+        }
+      }
+    ]
+  }
+}
+```
+
+
 ## Checklist
 - [X] CI/CD (GitHub Actions)
 - [X] Database (sqlx)
@@ -473,7 +575,7 @@ Success
   - [X] Test
 - [X] CRUD for Message
 - [X] Query for Message by user and time range
-- [ ] Advanced: Reply to Message
+- [X] Advanced: Reply to Message
 - [ ] Advanced: User registration/login
 
 

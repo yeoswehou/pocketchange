@@ -16,6 +16,7 @@ pub enum MessageAction {
     Get(i32),
     GetAllForUser(i32),
     GetInTimeRangeForUser(i32, DateTime<Utc>, DateTime<Utc>),
+    GetMessagesInThread(i32),
     Update(i32, String),
     Delete(i32),
 }
@@ -26,6 +27,7 @@ pub enum DatabaseAction {
     User(user::Model),
     Message(message::Model),
     Messages(Vec<message::Model>),
+    MessageThread(Vec<(message::Model, Option<user::Model>)>),
 }
 
 pub async fn handle_user_action(
@@ -127,6 +129,10 @@ pub async fn handle_message_action(
             let messages = get_messages_in_time_range(db, user_id, start, end).await?;
             Ok(DatabaseAction::Messages(messages))
         }
+        MessageAction::GetMessagesInThread(message_id) => {
+            let messages = fetch_message_thread(db, message_id).await?;
+            Ok(DatabaseAction::MessageThread(messages))
+        }
     }
 }
 
@@ -205,6 +211,43 @@ async fn get_messages_in_time_range(
         .await?;
 
     Ok(messages)
+}
+
+async fn fetch_replies(
+    db: &DatabaseConnection,
+    parent_id: i32,
+    thread: &mut Vec<(message::Model, Option<user::Model>)>,
+) -> Result<(), DbErr> {
+    let replies = message::Entity::find()
+        .filter(message::Column::ParentId.eq(parent_id))
+        .all(db)
+        .await?;
+
+    for reply in replies {
+        let user = user::Entity::find_by_id(reply.user_id).one(db).await?;
+        thread.push((reply.clone(), user));
+        Box::pin(fetch_replies(db, reply.id, thread)).await?;
+    }
+    Ok(())
+}
+
+async fn fetch_message_thread(
+    db: &DatabaseConnection,
+    message_id: i32,
+) -> Result<Vec<(message::Model, Option<user::Model>)>, DbErr> {
+    // Fetch the root message
+    let root_message = message::Entity::find_by_id(message_id)
+        .one(db)
+        .await?
+        .ok_or_else(|| DbErr::Custom("Root message not found".to_owned()))?;
+
+    let root_user = user::Entity::find_by_id(root_message.user_id)
+        .one(db)
+        .await?;
+
+    let mut thread = vec![(root_message, root_user)];
+    fetch_replies(db, message_id, &mut thread).await?;
+    Ok(thread)
 }
 
 #[cfg(test)]
