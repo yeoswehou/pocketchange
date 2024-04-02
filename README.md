@@ -190,7 +190,7 @@ Success
 {
   "data": {
     "getUser": {
-      "name": "helllo"
+      "name": "User 2"
     }
   }
 }
@@ -302,29 +302,29 @@ Success
 
 ## Message Mutations
 - **createMessage**
-- NO NESTING
+**- NO NESTING**
 ```graphql
 mutation {
-  createMessage(userId: 9, content: "I am Batman") {
+  createMessage(userId: 1, content: "I am Batman") {
   success
   }
 }
 ```
 ```shell
-curl -X POST -H "Content-Type: application/json" -d '{"query": "mutation { createMessage(userId: 9, content: \"I am Batman\") { success } }"}' http://localhost:8080/graphql
+curl -X POST -H "Content-Type: application/json" -d '{"query": "mutation { createMessage(userId: 1, content: \"I am Batman\") { success } }"}' http://localhost:8080/graphql
 ```
 
-- NESTING
+**- NESTING**
 ```graphql
 mutation {
-  createMessage(userId: 9, content: "I am Batman", parentId: 2) {
+  createMessage(userId: 1, content: "I am Batman", parentId: 2) {
   success
   }
 }
 ```
 ```shell
 curl -X POST -H "Content-Type: application/json" \
-     -d '{"query": "mutation { createMessage(userId: 9, content: \"I am Batman\", parentId: 2) { success } }"}' \
+     -d '{"query": "mutation { createMessage(userId: 1, content: \"I am Batman\", parentId: 2) { success } }"}' \
      http://localhost:8080/graphql
 ```
 
@@ -344,14 +344,14 @@ Success
 - **updateMessage**
 ```graphql
 mutation {
-  updateMessage(id: 21, content: "I am not Batman") {
+  updateMessage(id: 1, content: "I am not Batman") {
   success
   }
 }
 ```
 
 ```shell
-curl -X POST -H "Content-Type: application/json" -d '{"query": "mutation { updateMessage(id: 21, content: \"I am not Batman\") { success } }"}' http://localhost:8080/graphql
+curl -X POST -H "Content-Type: application/json" -d '{"query": "mutation { updateMessage(id: 1, content: \"I am not Batman\") { success } }"}' http://localhost:8080/graphql
 ```
 
 **Sample Response**
@@ -370,7 +370,7 @@ Success
 - **deleteMessage**
 ```graphql
 mutation {
-  deleteMessage(id: 22) {
+  deleteMessage(id: 2) {
     success
     message
   }
@@ -378,7 +378,7 @@ mutation {
 ```
 
 ```shell
-curl -X POST -H "Content-Type: application/json" -d '{"query": "mutation { deleteMessage(id: 22) { success message } }"}' http://localhost:8080/graphql
+curl -X POST -H "Content-Type: application/json" -d '{"query": "mutation { deleteMessage(id: 2) { success message } }"}' http://localhost:8080/graphql
 ```
 **Sample Response**
 
@@ -397,7 +397,7 @@ Success
 - getMessagesByUser
 ```graphql
 query {
-  getAllMessagesForUser(userId:9) {
+  getAllMessagesForUser(userId:2) {
     id
     userId
     createdAt
@@ -407,7 +407,7 @@ query {
 }
 ```
 ```shell
-curl -X POST -H "Content-Type: application/json" -d '{"query": "query { getAllMessagesForUser(userId: 9) { id userId createdAt updatedAt content } }"}' http://localhost:8080/graphql
+curl -X POST -H "Content-Type: application/json" -d '{"query": "query { getAllMessagesForUser(userId: 2) { id userId createdAt updatedAt content } }"}' http://localhost:8080/graphql
 ```
 
 **Sample Response**
@@ -418,11 +418,103 @@ Success
   "data": {
     "getAllMessagesForUser": [
       {
-        "id": "21",
-        "userId": "9",
-        "createdAt": "2024-03-31T17:46:33.139078+00:00",
-        "updatedAt": "2024-03-31T17:46:33.139078+00:00",
-        "content": "I am Batman"
+        "id": "4",
+        "userId": "2",
+        "createdAt": "2024-04-02T12:18:27.620364+00:00",
+        "updatedAt": "2024-04-02T12:18:27.620364+00:00",
+        "content": "Message 1 from User 2",
+        "parentId": null,
+        "user": {
+          "name": ""
+        }
+      },
+      {
+        "id": "5",
+        "userId": "2",
+        "createdAt": "2024-04-02T12:18:27.636035+00:00",
+        "updatedAt": "2024-04-02T12:18:27.636035+00:00",
+        "content": "Message 2 from User 2",
+        "parentId": null,
+        "user": {
+          "name": ""
+        }
+      },
+      {
+        "id": "6",
+        "userId": "2",
+        "createdAt": "2024-04-02T12:18:27.650145+00:00",
+        "updatedAt": "2024-04-02T12:18:27.650145+00:00",
+        "content": "Message 3 from User 2",
+        "parentId": null,
+        "user": {
+          "name": ""
+        }
+      },
+      {
+        "id": "37",
+        "userId": "2",
+        "createdAt": "2024-04-02T12:21:36.212078+00:00",
+        "updatedAt": "2024-04-02T12:21:36.212078+00:00",
+        "content": "Message 1 from User 2",
+        "parentId": null,
+        "user": {
+          "name": ""
+        }
+      },
+      {
+        "id": "38",
+        "userId": "2",
+        "createdAt": "2024-04-02T12:21:36.230136+00:00",
+        "updatedAt": "2024-04-02T12:21:36.230136+00:00",
+        "content": "Message 2 from User 2",
+        "parentId": null,
+        "user": {
+          "name": ""
+        }
+      },
+      {
+        "id": "39",
+        "userId": "2",
+        "createdAt": "2024-04-02T12:21:36.246328+00:00",
+        "updatedAt": "2024-04-02T12:21:36.246328+00:00",
+        "content": "Message 3 from User 2",
+        "parentId": null,
+        "user": {
+          "name": ""
+        }
+      },
+      {
+        "id": "70",
+        "userId": "2",
+        "createdAt": "2024-04-02T12:23:17.196612+00:00",
+        "updatedAt": "2024-04-02T12:23:17.196612+00:00",
+        "content": "Message 1 from User 2",
+        "parentId": null,
+        "user": {
+          "name": ""
+        }
+      },
+      {
+        "id": "71",
+        "userId": "2",
+        "createdAt": "2024-04-02T12:23:17.216956+00:00",
+        "updatedAt": "2024-04-02T12:23:17.216956+00:00",
+        "content": "Message 2 from User 2",
+        "parentId": null,
+        "user": {
+          "name": ""
+        }
+      },
+      {
+        "id": "72",
+        "userId": "2",
+        "createdAt": "2024-04-02T12:23:17.231876+00:00",
+        "updatedAt": "2024-04-02T12:23:17.231876+00:00",
+        "content": "Message 3 from User 2",
+        "parentId": null,
+        "user": {
+          "name": ""
+        }
       }
     ]
   }
@@ -432,14 +524,14 @@ Success
 - getMessagesByTimeRange
 ```graphql
 query {
-  getMessagesInTimeRangeForUser(userId: 9, start: "2023-01-01T00:00:00Z", end: "2025-01-02T00:00:00Z"){
+  getMessagesInTimeRangeForUser(userId: 3, start: "2023-01-01T00:00:00Z", end: "2025-01-02T00:00:00Z"){
  		content
     createdAt
   }
 }
 ```
 ```shell
-curl -X POST -H "Content-Type: application/json" -d '{"query": "query { getMessagesInTimeRangeForUser(userId: 9, start: \"2023-01-01T00:00:00Z\", end: \"2025-01-02T00:00:00Z\") { content createdAt } }"}' http://localhost:8080/graphql
+curl -X POST -H "Content-Type: application/json" -d '{"query": "query { getMessagesInTimeRangeForUser(userId: 3, start: \"2023-01-01T00:00:00Z\", end: \"2025-01-02T00:00:00Z\") { content createdAt } }"}' http://localhost:8080/graphql
 ```
 
 **Sample Response**
@@ -450,29 +542,76 @@ Success
   "data": {
     "getMessagesInTimeRangeForUser": [
       {
-        "content": "I am not Batman",
-        "createdAt": "2024-03-31T17:46:33.139078+00:00",
-        "updatedAt": "2024-03-31T17:46:33.139078+00:00"
+        "content": "Message 1 from User 3",
+        "createdAt": "2024-04-02T12:18:27.670406+00:00",
+        "id": "7",
+        "user": {
+          "name": ""
+        }
       },
       {
-        "content": "Test 2",
-        "createdAt": "2024-03-31T17:51:21.487446+00:00",
-        "updatedAt": "2024-03-31T17:51:21.487446+00:00"
+        "content": "Message 2 from User 3",
+        "createdAt": "2024-04-02T12:18:27.683630+00:00",
+        "id": "8",
+        "user": {
+          "name": ""
+        }
       },
       {
-        "content": "Test 3",
-        "createdAt": "2024-03-31T17:51:22.315987+00:00",
-        "updatedAt": "2024-03-31T17:51:22.315987+00:00"
+        "content": "Message 3 from User 3",
+        "createdAt": "2024-04-02T12:18:27.695869+00:00",
+        "id": "9",
+        "user": {
+          "name": ""
+        }
       },
       {
-        "content": "Test 4",
-        "createdAt": "2024-03-31T17:51:22.942003+00:00",
-        "updatedAt": "2024-03-31T17:51:22.942003+00:00"
+        "content": "Message 1 from User 3",
+        "createdAt": "2024-04-02T12:21:36.258290+00:00",
+        "id": "40",
+        "user": {
+          "name": ""
+        }
       },
       {
-        "content": "Test 5",
-        "createdAt": "2024-03-31T17:51:23.638304+00:00",
-        "updatedAt": "2024-03-31T17:51:23.638304+00:00"
+        "content": "Message 2 from User 3",
+        "createdAt": "2024-04-02T12:21:36.272712+00:00",
+        "id": "41",
+        "user": {
+          "name": ""
+        }
+      },
+      {
+        "content": "Message 3 from User 3",
+        "createdAt": "2024-04-02T12:21:36.291681+00:00",
+        "id": "42",
+        "user": {
+          "name": ""
+        }
+      },
+      {
+        "content": "Message 1 from User 3",
+        "createdAt": "2024-04-02T12:23:17.244629+00:00",
+        "id": "73",
+        "user": {
+          "name": ""
+        }
+      },
+      {
+        "content": "Message 2 from User 3",
+        "createdAt": "2024-04-02T12:23:17.256670+00:00",
+        "id": "74",
+        "user": {
+          "name": ""
+        }
+      },
+      {
+        "content": "Message 3 from User 3",
+        "createdAt": "2024-04-02T12:23:17.268240+00:00",
+        "id": "75",
+        "user": {
+          "name": ""
+        }
       }
     ]
   }
@@ -505,7 +644,7 @@ curl -X POST -H "Content-Type: application/json" \
 
 Success
 ```json
-
+{
   "data": {
     "getMessageThread": [
       {
