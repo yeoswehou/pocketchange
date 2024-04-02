@@ -49,6 +49,10 @@ impl QueryRoot {
                 created_at: message.created_at,
                 updated_at: message.updated_at,
                 parent_id: message.parent_id,
+                user: User {
+                    id,
+                    name: "".to_string(),
+                },
             })),
             DatabaseAction::Failure(message) => Err(async_graphql::Error::new(message)),
             _ => Ok(None),
@@ -74,6 +78,10 @@ impl QueryRoot {
                     created_at: msg.created_at,
                     updated_at: msg.updated_at,
                     parent_id: msg.parent_id,
+                    user: User {
+                        id: Default::default(),
+                        name: "".to_string(),
+                    },
                 })
                 .collect()),
             _ => Err(async_graphql::Error::new("Failed to fetch messages")),
@@ -109,6 +117,10 @@ impl QueryRoot {
                     created_at: msg.created_at,
                     updated_at: msg.updated_at,
                     parent_id: msg.parent_id,
+                    user: User {
+                        id: Default::default(),
+                        name: "".to_string(),
+                    },
                 })
                 .collect()),
             _ => Err(async_graphql::Error::new("Failed to fetch messages")),
@@ -185,11 +197,12 @@ impl MutationRoot {
         ctx: &Context<'_>,
         user_id: ID,
         content: String,
-        // parent_id: Option<i32>,
+        parent_id: Option<i32>,
     ) -> FieldResult<MutationResponse> {
         let db = ctx.data_unchecked::<MyContext>().db.clone();
         let user_id = user_id.parse::<i32>()?;
-        let result = handle_message_action(&db, MessageAction::Create(user_id, content)).await?;
+        let result =
+            handle_message_action(&db, MessageAction::Create(user_id, content, parent_id)).await?;
         handle_database_action(result).await
     }
 

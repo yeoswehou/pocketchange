@@ -143,9 +143,12 @@ mod tests {
 
         // Create messages sequentially
         for (content, user_id) in messages {
-            handle_message_action(db, MessageAction::Create(user_id, content.to_string()))
-                .await
-                .unwrap();
+            handle_message_action(
+                db,
+                MessageAction::Create(user_id, content.to_string(), None),
+            )
+            .await
+            .unwrap();
         }
     }
 

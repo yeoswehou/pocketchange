@@ -12,7 +12,7 @@ pub enum UserAction {
 }
 
 pub enum MessageAction {
-    Create(i32, String),
+    Create(i32, String, Option<i32>),
     Get(i32),
     GetAllForUser(i32),
     GetInTimeRangeForUser(i32, DateTime<Utc>, DateTime<Utc>),
@@ -100,8 +100,8 @@ pub async fn handle_message_action(
     action: MessageAction,
 ) -> Result<DatabaseAction, DbErr> {
     match action {
-        MessageAction::Create(user_id, content) => {
-            create_message(db, user_id, &content).await?;
+        MessageAction::Create(user_id, content, parent_id) => {
+            create_message(db, user_id, &content, parent_id).await?;
             Ok(DatabaseAction::Success)
         }
         MessageAction::Get(message_id) => {
@@ -134,13 +134,14 @@ async fn create_message(
     db: &DatabaseConnection,
     user_id: i32,
     content: &str,
+    parent_id: Option<i32>,
 ) -> Result<DatabaseAction, DbErr> {
     let message = message::ActiveModel {
         user_id: Set(user_id),
         content: Set(content.to_owned()),
+        parent_id: Set(parent_id),
         ..Default::default()
     };
-
     message.insert(db).await?;
     Ok(DatabaseAction::Success)
 }
@@ -359,7 +360,7 @@ mod tests {
             .expect("User not found");
 
         let user_id = user.id;
-        create_message(&db, user_id, message_content)
+        create_message(&db, user_id, message_content, None)
             .await
             .expect("Failed to create message");
 
@@ -395,7 +396,7 @@ mod tests {
             .expect("User not found");
 
         let user_id = user.id;
-        create_message(&db, user_id, message_content)
+        create_message(&db, user_id, message_content, None)
             .await
             .expect("Failed to create message");
 
@@ -443,7 +444,7 @@ mod tests {
             .expect("User not found");
 
         let user_id = user.id;
-        create_message(&db, user_id, message_content)
+        create_message(&db, user_id, message_content, None)
             .await
             .expect("Failed to create message");
 
@@ -494,7 +495,7 @@ mod tests {
 
         let user_id = user.id;
         for _ in 0..10 {
-            create_message(&db, user_id, message_content)
+            create_message(&db, user_id, message_content, None)
                 .await
                 .expect("Failed to create message");
         }

@@ -24,6 +24,7 @@ pub struct Message {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub parent_id: Option<i32>,
+    pub user: User,
 }
 
 #[Object]
@@ -49,5 +50,9 @@ impl Message {
 
     async fn parent_id(&self) -> Option<i32> {
         self.parent_id
+    }
+
+    async fn user(&self) -> &User {
+        &self.user
     }
 }
