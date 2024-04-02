@@ -64,11 +64,14 @@ To build the app and start the server, run the following commands:
 docker-compose build
 docker-compose up app
 ```
+Sample data will be automatically added.
 
 Alternatively, you can start the database container separately and run the application using Cargo:
 ```bash
 docker-compose up -d db
 cargo run
+# For sample data
+bash populate.sh
 ```
 
 ## Load Sample Data
