@@ -20,6 +20,7 @@ sea-orm = { version = "0.12.15", features = ["sqlx-postgres", "runtime-tokio-nat
 dotenvy = "0.15.7"
 async-trait = "0.1.78"
 migration = { path = "migration" }
+tower = "0.4.13"
 
 [dev-dependencies]
 # For pre-commit

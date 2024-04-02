@@ -80,7 +80,7 @@ cargo install sea-orm-cli
 To run the tests, use the following commands:
 ```bash
 docker-compose up -d test-db
-sea-orm-cli migration up -u postgresql://username:password@localhost:5433/pocketchangetest
+sea-orm-cli migrate up -u postgresql://username:password@localhost:5433/pocketchangetest
 cargo test
 ```
 ## Environment Variables

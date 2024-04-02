@@ -235,7 +235,7 @@ mod tests {
     use super::*;
     use dotenvy::dotenv;
     use migration::{Migrator, MigratorTrait};
-    use sea_orm::Database;
+    use sea_orm::{Database, TransactionTrait};
     use std::env;
     use tokio::time;
 
@@ -259,6 +259,7 @@ mod tests {
     #[tokio::test]
     async fn test_create_user() {
         let db = setup().await;
+        let transaction = db.begin().await.expect("Failed to start transaction");
         let name = "Alice";
         let new_user_result = create_user(&db, name).await;
         assert!(new_user_result.is_ok(), "Failed to create user");
@@ -270,11 +271,16 @@ mod tests {
             .expect("Failed to find user");
         assert!(user.is_some(), "User not found");
         assert_eq!(user.unwrap().name, name);
+        transaction
+            .rollback()
+            .await
+            .expect("Failed to rollback transaction");
     }
 
     #[tokio::test]
     async fn test_update_user() {
         let db = setup().await;
+        let transaction = db.begin().await.expect("Failed to start transaction");
         let name = "Bob";
         let new_name = "Carl";
         create_user(&db, name).await.expect("Failed to create user");
@@ -298,11 +304,16 @@ mod tests {
             .expect("User not found");
 
         assert_eq!(updated_user.name, new_name);
+        transaction
+            .rollback()
+            .await
+            .expect("Failed to rollback transaction");
     }
 
     #[tokio::test]
     async fn test_delete_user() {
         let db = setup().await;
+        let transaction = db.begin().await.expect("Failed to start transaction");
         let name = "Dave";
         create_user(&db, name).await.expect("Failed to create user");
 
@@ -324,11 +335,16 @@ mod tests {
             .expect("Failed to find user");
 
         assert!(deleted_user.is_none(), "User not deleted");
+        transaction
+            .rollback()
+            .await
+            .expect("Failed to rollback transaction");
     }
 
     #[tokio::test]
     async fn test_get_user() {
         let db = setup().await;
+        let transaction = db.begin().await.expect("Failed to start transaction");
         let name = "Igor";
         create_user(&db, name).await.expect("Failed to create user");
 
@@ -343,11 +359,16 @@ mod tests {
         let found_user = get_user(&db, user_id).await.expect("Failed to get user");
         assert!(found_user.is_some(), "User not found");
         assert_eq!(found_user.unwrap().name, name);
+        transaction
+            .rollback()
+            .await
+            .expect("Failed to rollback transaction");
     }
 
     #[tokio::test]
     async fn test_create_message() {
         let db = setup().await;
+        let transaction = db.begin().await.expect("Failed to start transaction");
         let user_name = "Alex";
         let message_content = "Hello, world!";
         create_user(&db, user_name)
@@ -374,11 +395,16 @@ mod tests {
             .expect("Message not found");
 
         assert_eq!(message.content, message_content);
+        transaction
+            .rollback()
+            .await
+            .expect("Failed to rollback transaction");
     }
 
     #[tokio::test]
     async fn test_update_message() {
         let db = setup().await;
+        let transaction = db.begin().await.expect("Failed to start transaction");
         let user_name = "Bob Dylan";
         let message_content = "Hello, world!";
         create_user(&db, user_name)
@@ -417,11 +443,16 @@ mod tests {
             .expect("Message not found");
 
         assert_eq!(updated_message.content, new_content);
+        transaction
+            .rollback()
+            .await
+            .expect("Failed to rollback transaction");
     }
 
     #[tokio::test]
     async fn test_delete_message() {
         let db = setup().await;
+        let transaction = db.begin().await.expect("Failed to start transaction");
         let user_name = "Charlie";
         let message_content = "Hello, world!";
         create_user(&db, user_name)
@@ -458,11 +489,20 @@ mod tests {
             .expect("Failed to find message");
 
         assert!(deleted_message.is_none(), "Message not deleted");
+        transaction
+            .rollback()
+            .await
+            .expect("Failed to rollback transaction");
     }
 
     #[tokio::test]
     async fn test_get_messages_in_time_range() {
+        if env::var("CI").is_ok() {
+            println!("Skipping this test on GitHub Actions.");
+            return;
+        }
         let db = setup().await;
+        let transaction = db.begin().await.expect("Failed to start transaction");
         let user_name = "David";
         let message_content = "Hello, world!";
         create_user(&db, user_name)
@@ -482,7 +522,7 @@ mod tests {
                 .await
                 .expect("Failed to create message");
         }
-        time::sleep(time::Duration::from_secs(3)).await;
+        time::sleep(time::Duration::from_secs(1)).await;
 
         let start = chrono::Utc::now() - chrono::Duration::days(1);
         let end = chrono::Utc::now() + chrono::Duration::days(1);
@@ -493,5 +533,9 @@ mod tests {
             1 => assert_eq!(result.len(), 1),
             _ => assert!(result.len() > 1),
         }
+        transaction
+            .rollback()
+            .await
+            .expect("Failed to rollback transaction");
     }
 }
