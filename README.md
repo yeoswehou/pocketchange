@@ -71,6 +71,12 @@ docker-compose up -d db
 cargo run
 ```
 
+## Load Sample Data
+To load sample data, run the following command:
+```bash
+bash populate.sh
+```
+
 ## How to Test
 Needs SeaORM CLI to run the migrations for the test. 
 
