@@ -1,4 +1,4 @@
-# pocketchange
+# Axum-GraphQL-SeaORM 
 
 ## Requirements
 Requirements: Please create a simple Rust web server:
@@ -14,6 +14,7 @@ Requirements: Please create a simple Rust web server:
 ## Rust Version
 Tested with
 - rustc 1.77.1 (7cf61ebde 2024-03-27)
+
 
 ## Libraries
 - async-graphql
@@ -78,7 +79,7 @@ Install it using the following command:
 cargo install sea-orm-cli
 ```
 To run the tests, use the following commands:
-For simple testing, I created two databases for testing and integration testing. Currently the tests are running sequentially, but it can be improved to run in parallel.
+For simple testing, I created two databases for testing and integration testing. Currently, the tests are running sequentially, but it can be improved to run in parallel.
 ```bash
 docker-compose up -d test-db
 docker-compose up -d test-integration
@@ -456,7 +457,8 @@ Success
 ```
 
 ## Checklist
-- [x] Database (sqlx)
+- [X] CI/CD (GitHub Actions)
+- [X] Database (sqlx)
   - [X] User entity
   - [X] Message entity
   - [X] Create tables
@@ -468,7 +470,14 @@ Success
   - [X] Schema
   - [X] Query
   - [X] Mutation
+  - [X] Test
 - [X] CRUD for Message
 - [X] Query for Message by user and time range
 - [ ] Advanced: Reply to Message
 - [ ] Advanced: User registration/login
+
+
+## Potential Improvements
+- Better testing
+- Better error handling / logging messages
+- Authentication and Authorization

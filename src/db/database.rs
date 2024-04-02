@@ -35,30 +35,21 @@ pub async fn handle_user_action(
     match action {
         UserAction::Create(name) => {
             create_user(db, &name).await?;
-            println!("User created: {}", name);
             Ok(DatabaseAction::Success)
         }
         UserAction::Delete(user_id) => {
             delete_user(db, user_id).await?;
-            println!("User deleted: ID {}", user_id);
             Ok(DatabaseAction::Success)
         }
         UserAction::Get(user_id) => {
             let user = get_user(db, user_id).await?;
             match user {
-                Some(user) => {
-                    println!("User found: ID {}, Name: {}", user.id, user.name);
-                    Ok(DatabaseAction::User(user))
-                }
-                None => {
-                    println!("User not found: ID {}", user_id);
-                    Ok(DatabaseAction::Failure("User not found".to_string()))
-                }
+                Some(user) => Ok(DatabaseAction::User(user)),
+                None => Ok(DatabaseAction::Failure("User not found".to_string())),
             }
         }
         UserAction::Update(user_id, name) => {
             update_user(db, user_id, &name).await?;
-            println!("User updated: ID {}, Name: {}", user_id, name);
             Ok(DatabaseAction::Success)
         }
     }
@@ -86,7 +77,6 @@ async fn update_user(
         mut_filtered_user.update(db).await?;
         Ok(DatabaseAction::Success)
     } else {
-        println!("User not found: ID {}", user_id);
         Ok(DatabaseAction::Failure("User not found".to_string()))
     }
 }
@@ -96,7 +86,6 @@ async fn delete_user(db: &DatabaseConnection, user_id: i32) -> Result<DatabaseAc
     if result.rows_affected > 0 {
         Ok(DatabaseAction::Success)
     } else {
-        println!("User not found: ID {}", user_id);
         Ok(DatabaseAction::Failure("User not found".to_string()))
     }
 }
@@ -113,33 +102,21 @@ pub async fn handle_message_action(
     match action {
         MessageAction::Create(user_id, content) => {
             create_message(db, user_id, &content).await?;
-            println!("Message created: User ID {}, Content: {}", user_id, content);
             Ok(DatabaseAction::Success)
         }
         MessageAction::Get(message_id) => {
             let message = get_message(db, message_id).await?;
             match message {
-                Some(message) => {
-                    println!(
-                        "Message found: ID {}, User ID {}, Content: {}",
-                        message.id, message.user_id, message.content
-                    );
-                    Ok(DatabaseAction::Message(message))
-                }
-                None => {
-                    println!("Message not found: ID {}", message_id);
-                    Ok(DatabaseAction::Failure("Message not found".to_string()))
-                }
+                Some(message) => Ok(DatabaseAction::Message(message)),
+                None => Ok(DatabaseAction::Failure("Message not found".to_string())),
             }
         }
         MessageAction::Update(message_id, content) => {
             update_message(db, message_id, &content).await?;
-            println!("Message updated: ID {}, Content: {}", message_id, content);
             Ok(DatabaseAction::Success)
         }
         MessageAction::Delete(message_id) => {
             delete_message(db, message_id).await?;
-            println!("Message deleted: ID {}", message_id);
             Ok(DatabaseAction::Success)
         }
         MessageAction::GetAllForUser(user_id) => {
@@ -185,10 +162,10 @@ async fn update_message(
     if let Some(filtered_message) = filtered_message {
         let mut mut_filtered_message: message::ActiveModel = filtered_message.into();
         mut_filtered_message.content = Set(new_content.to_owned());
+        mut_filtered_message.updated_at = Set(chrono::Utc::now());
         mut_filtered_message.update(db).await?;
         Ok(DatabaseAction::Success)
     } else {
-        println!("Message not found: ID {}", message_id);
         Ok(DatabaseAction::Failure("Message not found".to_string()))
     }
 }
@@ -198,7 +175,6 @@ async fn delete_message(db: &DatabaseConnection, message_id: i32) -> Result<Data
     if result.rows_affected > 0 {
         Ok(DatabaseAction::Success)
     } else {
-        println!("Message not found: ID {}", message_id);
         Ok(DatabaseAction::Failure("Message not found".to_string()))
     }
 }

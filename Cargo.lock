@@ -519,6 +519,7 @@ dependencies = [
  "chrono",
  "dotenvy",
  "futures",
+ "log",
  "migration",
  "reqwest",
  "sea-orm",
