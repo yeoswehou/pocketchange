@@ -78,12 +78,13 @@ Install it using the following command:
 cargo install sea-orm-cli
 ```
 To run the tests, use the following commands:
+For simple testing, I created two databases for testing and integration testing. Currently the tests are running sequentially, but it can be improved to run in parallel.
 ```bash
 docker-compose up -d test-db
 docker-compose up -d test-integration
 sea-orm-cli migrate up -u postgresql://username:password@localhost:5433/pocketchangetest
 sea-orm-cli migrate up -u postgresql://username:password@localhost:5434/pocketchangeintegration
-cargo test
+cargo test -- --test-threads=1
 ```
 ## Environment Variables
 Stored in a .env file because this is an assignment. It will be handled differently in production (GitHub Secrets etc.).

@@ -183,7 +183,6 @@ mod tests {
         let response = app.oneshot(req).await.expect("Failed to execute request");
 
         assert_eq!(response.status(), StatusCode::OK);
-        // Parse
         let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
         let value: Value = serde_json::from_slice(&body).unwrap();
         // Get the message from the error
@@ -210,7 +209,6 @@ mod tests {
         let response = app.oneshot(req).await.expect("Failed to execute request");
 
         assert_eq!(response.status(), StatusCode::OK);
-        // Parse
         let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
         let value: Value = serde_json::from_slice(&body).unwrap();
         assert_eq!(
@@ -241,7 +239,6 @@ mod tests {
         let response = app.oneshot(req).await.expect("Failed to execute request");
 
         assert_eq!(response.status(), StatusCode::OK);
-        // Parse
         let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
         let value: Value = serde_json::from_slice(&body).unwrap();
         assert_eq!(
@@ -252,6 +249,219 @@ mod tests {
                     "success": true,
                     "message": "Action succeeded"
                 }
+                }
+            })
+        );
+    }
+
+    #[tokio::test]
+    async fn test_get_all_message() {
+        let app = setup_app().await;
+        let req = Request::builder()
+            .uri("/graphql")
+            .method(http::Method::POST)
+            .header(http::header::CONTENT_TYPE, "application/json")
+            .body(Body::from(
+                r#"{"query":"{ getAllMessagesForUser (userId: 1) { userId content } }"}"#,
+            ))
+            .unwrap();
+        let response = app.oneshot(req).await.expect("Failed to execute request");
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let value: Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(
+            value,
+            json!({
+                "data": {
+                    "getAllMessagesForUser": [
+                        {
+                            "userId": "1",
+                            "content": "Hello, world!"
+                        },
+                        {
+                            "userId": "1",
+                            "content": "I am Alice"
+                        }
+                    ]
+                }
+            })
+        );
+    }
+
+    #[tokio::test]
+    async fn test_delete_message() {
+        let app = setup_app().await;
+        let req = Request::builder()
+            .uri("/graphql")
+            .method(http::Method::POST)
+            .header(http::header::CONTENT_TYPE, "application/json")
+            .body(Body::from(
+                r#"{"query":"mutation { deleteMessage(id: 1) { success message } }"}"#,
+            ))
+            .unwrap();
+
+        let response = app.oneshot(req).await.expect("Failed to execute request");
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let value: Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(
+            value,
+            json!({
+                "data": {
+                    "deleteMessage": {
+                    "success": true,
+                    "message": "Action succeeded"
+                }
+                }
+            })
+        );
+    }
+
+    #[tokio::test]
+    async fn test_update_message() {
+        let app = setup_app().await;
+        let req = Request::builder()
+            .uri("/graphql")
+            .method(http::Method::POST)
+            .header(http::header::CONTENT_TYPE, "application/json")
+            .body(Body::from(
+                r#"{"query":"mutation { updateMessage(id: 1, content: \"THIS IS AN UPDATED MESSAGE\") { success message } }"}"#,
+            ))
+            .unwrap();
+
+        let response = app
+            .clone()
+            .oneshot(req)
+            .await
+            .expect("Failed to execute request");
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let value: Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(
+            value,
+            json!({
+                "data": {
+                    "updateMessage": {
+                    "success": true,
+                    "message": "Action succeeded"
+                }
+                }
+            })
+        );
+
+        // Check if the message was updated
+        let req = Request::builder()
+            .uri("/graphql")
+            .method(http::Method::POST)
+            .header(http::header::CONTENT_TYPE, "application/json")
+            .body(Body::from(
+                r#"{"query":"{ getMessage(id: 1) { id content } }"}"#,
+            ))
+            .unwrap();
+        let response = app.oneshot(req).await.expect("Failed to execute request");
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let value: Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(
+            value,
+            json!({
+                "data": {
+                    "getMessage": {
+                        "id": "1",
+                        "content": "THIS IS AN UPDATED MESSAGE"
+                    }
+                }
+            })
+        );
+    }
+
+    #[tokio::test]
+    async fn test_updated_non_existent_message() {
+        let app = setup_app().await;
+        let req = Request::builder()
+            .uri("/graphql")
+            .method(http::Method::POST)
+            .header(http::header::CONTENT_TYPE, "application/json")
+            .body(Body::from(
+                r#"{"query":"mutation { updateMessage(id: 99999, content: \"THIS IS AN UPDATED MESSAGE\") { success message } }"}"#,
+            ))
+            .unwrap();
+
+        let response = app
+            .clone()
+            .oneshot(req)
+            .await
+            .expect("Failed to execute request");
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let value: Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(
+            value,
+            json!({
+                "data": {
+                    "updateMessage": {
+                    "success": true,
+                    "message": "Action succeeded"
+                }
+                }
+            })
+        );
+
+        let req = Request::builder()
+            .uri("/graphql")
+            .method(http::Method::POST)
+            .header(http::header::CONTENT_TYPE, "application/json")
+            .body(Body::from(
+                r#"{"query":"{ getMessage(id: 99999) { id content } }"}"#,
+            ))
+            .unwrap();
+        let response = app.oneshot(req).await.expect("Failed to execute request");
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let value: Value = serde_json::from_slice(&body).unwrap();
+        if let Some(errors) = value.get("errors") {
+            for error in errors.as_array().unwrap() {
+                if let Some(message) = error.get("message") {
+                    assert_eq!(message, "Message not found");
+                }
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn get_messages_in_time_range() {
+        let app = setup_app().await;
+        let req = Request::builder()
+            .uri("/graphql")
+            .method(http::Method::POST)
+            .header(http::header::CONTENT_TYPE, "application/json")
+            .body(Body::from(r#"{"query":"{ getMessagesInTimeRangeForUser(userId: 1, start: \"2021-01-01T00:00:00Z\", end: \"2099-01-02T00:00:00Z\") { id userId content } }"}"#))
+            .unwrap();
+        let response = app.oneshot(req).await.expect("Failed to execute request");
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let value: Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(
+            value,
+            json!({
+                "data": {
+                    "getMessagesInTimeRangeForUser": [
+                        {
+                            "id": "1",
+                            "userId": "1",
+                            "content": "Hello, world!"
+                        },
+                        {
+                            "id": "2",
+                            "userId": "1",
+                            "content": "I am Alice"
+                        }
+                    ]
                 }
             })
         );
